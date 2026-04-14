@@ -38,9 +38,9 @@ func _check_overlaps() -> void:
 			die()
 			return
 		elif area.is_in_group("mourk"):
-			if is_instance_valid(area):
+			if is_instance_valid(area) and area.has_method("collect"):
 				mourk_collected.emit(5)
-				area.queue_free()
+				area.collect()
 
 func _input(event: InputEvent) -> void:
 	if not alive or not controls_enabled:
