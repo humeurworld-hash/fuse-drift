@@ -1,0 +1,25 @@
+[gd_scene format=3 uid="uid://rock_hazard"]
+
+[ext_resource type="Script" path="res://scripts/hazards/rock_hazard.gd" id="1_rockhaz"]
+[ext_resource type="Texture2D" path="res://scenes/hazards/Rock.png" id="2_rocktex"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1"]
+radius = 80.0
+
+[node name="RockHazard" type="Area2D"]
+collision_layer = 1
+collision_mask = 1
+monitoring = false
+monitorable = true
+script = ExtResource("1_rockhaz")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_1")
+
+[node name="Art" type="Sprite2D" parent="."]
+texture = ExtResource("2_rocktex")
+
+[node name="Fallback" type="Polygon2D" parent="."]
+visible = false
+color = Color(0.361, 0.290, 0.224, 1)
+polygon = PackedVector2Array(-22, -18, 8, -26, 26, -6, 18, 22, -8, 28, -28, 8)

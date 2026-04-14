@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/hazards/falling_hazard.gd" id="1_hazard"]
+
+[sub_resource type="CircleShape2D" id="CS_hazard"]
+radius = 24.0
+
+[node name="CanvasDrone" type="Area2D"]
+script = ExtResource("1_hazard")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CS_hazard")
+
+[node name="Body" type="Polygon2D" parent="."]
+color = Color(1.0, 0.3, 0.1, 1.0)
+polygon = PackedVector2Array(0, -28, 28, 0, 0, 28, -28, 0)

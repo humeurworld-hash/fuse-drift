@@ -1,0 +1,22 @@
+# Godot 4 generated files
+.godot/
+*.uid
+
+# Import cache
+*.import
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Export templates
+export_presets.cfg
+*.pck
+*.apk
+*.aab
+*.ipa
+
+# Build output
+build/
+export/

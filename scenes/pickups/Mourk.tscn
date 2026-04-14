@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/pickups/mourk.gd" id="1_mourk"]
+
+[sub_resource type="CircleShape2D" id="CS_mourk"]
+radius = 18.0
+
+[node name="Mourk" type="Area2D"]
+script = ExtResource("1_mourk")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CS_mourk")
+
+[node name="Body" type="Polygon2D" parent="."]
+color = Color(0.0, 1.0, 0.9, 1.0)
+polygon = PackedVector2Array(0, -22, 22, 0, 0, 22, -22, 0)

@@ -1,0 +1,67 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/player/player.gd" id="1_player"]
+[ext_resource type="Texture2D" path="res://scenes/player/fuse/Hover.png" id="2_hover"]
+[ext_resource type="Texture2D" path="res://scenes/player/fuse/Move left.png" id="3_left"]
+[ext_resource type="Texture2D" path="res://scenes/player/fuse/Move right.png" id="4_right"]
+[ext_resource type="Texture2D" path="res://scenes/player/fuse/Damaged.png" id="5_damaged"]
+[ext_resource type="Texture2D" path="res://scenes/player/fuse/Glitch.png" id="6_glitch"]
+[ext_resource type="Texture2D" path="res://scenes/player/fuse/Stunned.png" id="7_stunned"]
+[ext_resource type="Texture2D" path="res://scenes/player/fuse/Worried.png" id="8_worried"]
+
+[sub_resource type="SpriteFrames" id="SF_player"]
+animations = [{
+"frames": [{"duration": 1.0, "texture": ExtResource("2_hover")}],
+"loop": true,
+"name": &"hover",
+"speed": 5.0
+}, {
+"frames": [{"duration": 1.0, "texture": ExtResource("3_left")}],
+"loop": true,
+"name": &"move_left",
+"speed": 5.0
+}, {
+"frames": [{"duration": 1.0, "texture": ExtResource("4_right")}],
+"loop": true,
+"name": &"move_right",
+"speed": 5.0
+}, {
+"frames": [{"duration": 1.0, "texture": ExtResource("5_damaged")}],
+"loop": false,
+"name": &"damaged",
+"speed": 5.0
+}, {
+"frames": [{"duration": 1.0, "texture": ExtResource("6_glitch")}],
+"loop": true,
+"name": &"glitch",
+"speed": 5.0
+}, {
+"frames": [{"duration": 1.0, "texture": ExtResource("7_stunned")}],
+"loop": true,
+"name": &"stunned",
+"speed": 5.0
+}, {
+"frames": [{"duration": 1.0, "texture": ExtResource("8_worried")}],
+"loop": true,
+"name": &"worried",
+"speed": 5.0
+}]
+
+[sub_resource type="CircleShape2D" id="CS_player"]
+radius = 28.0
+
+[node name="Player" type="Area2D"]
+collision_layer = 1
+collision_mask = 1
+monitoring = true
+monitorable = true
+z_index = 10
+script = ExtResource("1_player")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CS_player")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SF_player")
+animation = &"hover"
+autoplay = "hover"
