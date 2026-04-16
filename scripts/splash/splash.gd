@@ -24,8 +24,8 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not _ready_to_tap:
 		return
-	var is_tap := event is InputEventScreenTouch and event.pressed
-	var is_click := event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
+	var is_tap: bool = event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed
+	var is_click: bool = event is InputEventMouseButton and (event as InputEventMouseButton).pressed and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT
 	if is_tap or is_click:
 		_ready_to_tap = false
 		Transition.fade_to("res://scenes/menu/Menu.tscn")
