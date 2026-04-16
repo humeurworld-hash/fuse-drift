@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" path="res://scenes/hazards/level 3 hazards/clock2.PNG" id="2_tex"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1"]
-radius = 68.0
+radius = 100.0
 
 [node name="Clock2" type="Area2D"]
 collision_layer = 1
@@ -20,5 +20,5 @@ is_rewinder = false
 shape = SubResource("CircleShape2D_1")
 
 [node name="Body" type="Sprite2D" parent="."]
-scale = Vector2(0.1, 0.1)
+scale = Vector2(0.20, 0.20)
 texture = ExtResource("2_tex")
