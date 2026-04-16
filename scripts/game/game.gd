@@ -24,6 +24,7 @@ const LEVEL_2_BG_TEXTURE_PATHS := [
 @onready var hazards_root: Node = $Hazards
 @onready var pickups_root: Node = $Pickups
 
+@onready var music_player: AudioStreamPlayer = $MusicPlayer
 @onready var ui_layer: CanvasLayer = $UI
 @onready var start_panel: Panel = $UI/StartPanel
 @onready var title_label: Label = $UI/StartPanel/TitleLabel
@@ -63,6 +64,7 @@ func _process(delta: float) -> void:
 	update_hud()
 
 func _connect_signals() -> void:
+	music_player.finished.connect(_on_music_finished)
 	start_button.pressed.connect(start_level_1)
 	level2_button.pressed.connect(start_level_2)
 	restart_button.pressed.connect(_restart_current_level)
@@ -275,6 +277,9 @@ func _on_level_complete() -> void:
 		replay_button.text = "REPLAY LEVEL %d" % current_level
 	level_clear_panel.visible = true
 	update_hud()
+
+func _on_music_finished() -> void:
+	music_player.play()
 
 func _update_best_score(final_score: int) -> void:
 	if final_score > best_score:

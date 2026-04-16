@@ -1,9 +1,9 @@
 extends Node
 class_name HazardSpawner
 
-@export var hazard_scene_1: PackedScene = preload("res://scenes/hazards/CanvasDrone1.tscn")
-@export var hazard_scene_2: PackedScene = preload("res://scenes/hazards/CanvasDrone2.tscn")
-@export var hazard_scene_3: PackedScene = preload("res://scenes/hazards/CanvasDrone3.tscn")
+@export var hazard_scene_1: PackedScene = preload("res://scenes/hazards/level 2 hazards/CanvasDrone1.tscn")
+@export var hazard_scene_2: PackedScene = preload("res://scenes/hazards/level 2 hazards/CanvasDrone2.tscn")
+@export var hazard_scene_3: PackedScene = preload("res://scenes/hazards/level 2 hazards/CanvasDrone3.tscn")
 @export var base_interval: float = 0.90
 @export var min_interval: float = 0.32
 @export var speedup_per_second: float = 0.006

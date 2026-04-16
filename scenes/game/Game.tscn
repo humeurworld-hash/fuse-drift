@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://fuse_game"]
 
 [ext_resource type="Script" path="res://scripts/game/game.gd" id="1_game"]
+[ext_resource type="AudioStream" path="res://assets/audio/glitch-cathedral.mp3" id="10_music"]
 [ext_resource type="Script" path="res://scripts/game/level1_spawner.gd" id="2_spawner1"]
 [ext_resource type="Script" path="res://scripts/game/level2_spawner.gd" id="3_spawner2"]
 [ext_resource type="PackedScene" path="res://scenes/player/fuse/Player.tscn" id="4_player"]
@@ -40,6 +41,11 @@ drone1_scene = ExtResource("7_drone1")
 drone2_scene = ExtResource("8_drone2")
 drone3_scene = ExtResource("9_drone3")
 shard_scene = ExtResource("6_shard")
+
+[node name="MusicPlayer" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("10_music")
+volume_db = -8.0
+autoplay = true
 
 [node name="UI" type="CanvasLayer" parent="."]
 
