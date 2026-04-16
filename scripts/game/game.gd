@@ -55,7 +55,10 @@ func _ready() -> void:
 	best_score = load_best_score()
 	_setup_ui()
 	_connect_signals()
-	_show_start_screen()
+	match Global.selected_level:
+		1: start_level_1()
+		2: start_level_2()
+		_: _show_start_screen()
 
 func _process(delta: float) -> void:
 	if state != GameState.PLAYING:
@@ -124,21 +127,7 @@ func _setup_background(texture_paths: Array) -> void:
 				return
 
 func _show_start_screen() -> void:
-	state = GameState.START
-	level1_spawner.stop_run()
-	level2_spawner.stop_run()
-	clear_run_objects()
-	player.reset_player()
-	player.disable_control()
-	start_panel.visible = true
-	game_over_panel.visible = false
-	level_clear_panel.visible = false
-	score_label.visible = false
-	best_label.visible = false
-	wave_label.visible = false
-	health_label.visible = false
-	best_label.text = "Best: %d" % best_score
-	_setup_background(LEVEL_1_BG_TEXTURE_PATHS)
+	get_tree().change_scene_to_file("res://scenes/menu/Menu.tscn")
 
 func _restart_current_level() -> void:
 	if state == GameState.COMPLETE and current_level == 1:
