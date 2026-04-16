@@ -21,13 +21,14 @@ func _ready() -> void:
 	tween.tween_property(tap_label, "modulate:a", 0.2, 0.8).set_trans(Tween.TRANS_SINE)
 	tween.tween_property(tap_label, "modulate:a", 1.0, 0.8).set_trans(Tween.TRANS_SINE)
 
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	if not _ready_to_tap:
 		return
 	var is_tap: bool = event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed
 	var is_click: bool = event is InputEventMouseButton and (event as InputEventMouseButton).pressed and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT
 	if is_tap or is_click:
 		_ready_to_tap = false
+		get_viewport().set_input_as_handled()
 		Transition.fade_to("res://scenes/menu/Menu.tscn")
 
 func _setup_background() -> void:
