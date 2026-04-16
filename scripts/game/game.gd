@@ -1,12 +1,11 @@
 extends Node2D
 class_name Game
 
-enum GameState { START, PLAYING, DEAD, COMPLETE }
+enum GameState { START, PLAYING, DEAD, COMPLETE, PAUSED }
 
 const LEVEL_1_BG_TEXTURE_PATHS := [
 	"res://scenes/background/level 1.PNG",
 	"res://assets/art/level1/level1_cave_bg.png",
-	"res://assets/art/level1/cave_bg.png",
 ]
 
 const LEVEL_2_BG_TEXTURE_PATHS := [
@@ -23,28 +22,34 @@ const LEVEL_2_BG_TEXTURE_PATHS := [
 @onready var pickups_root: Node = $Pickups
 
 @onready var music_player: AudioStreamPlayer = $MusicPlayer
+@onready var game_over_sfx: AudioStreamPlayer = $GameOverSfx
+@onready var level_complete_sfx: AudioStreamPlayer = $LevelCompleteSfx
+@onready var button_click_sfx: AudioStreamPlayer = $ButtonClickSfx
 @onready var ui_layer: CanvasLayer = $UI
-@onready var start_panel: Panel = $UI/StartPanel
-@onready var title_label: Label = $UI/StartPanel/TitleLabel
-@onready var subtitle_label: Label = $UI/StartPanel/SubtitleLabel
-@onready var start_button: Button = $UI/StartPanel/StartButton
-@onready var level2_button: Button = $UI/StartPanel/Level2Button
+
 @onready var score_label: Label = $UI/ScoreLabel
 @onready var best_label: Label = $UI/BestLabel
 @onready var wave_label: Label = $UI/WaveLabel
 @onready var health_label: Label = $UI/HealthLabel
+@onready var pause_button: Button = $UI/PauseButton
+
 @onready var game_over_panel: Panel = $UI/GameOverPanel
 @onready var score_summary: Label = $UI/GameOverPanel/ScoreSummary
 @onready var restart_button: Button = $UI/GameOverPanel/RestartButton
 @onready var game_over_menu_button: Button = $UI/GameOverPanel/GameOverMenuButton
+
 @onready var level_clear_panel: Panel = $UI/LevelClearPanel
 @onready var clear_summary: Label = $UI/LevelClearPanel/ClearSummary
 @onready var replay_button: Button = $UI/LevelClearPanel/ReplayButton
 @onready var clear_menu_button: Button = $UI/LevelClearPanel/ClearMenuButton
 
+@onready var pause_panel: Panel = $UI/PausePanel
+@onready var resume_button: Button = $UI/PausePanel/ResumeButton
+@onready var pause_menu_button: Button = $UI/PausePanel/PauseMenuButton
+
 var state: GameState = GameState.START
 var score: float = 0.0
-var best_score: int = 0  # current level's best, loaded from Global on level start
+var best_score: int = 0
 var current_wave: int = 1
 var total_waves: int = 4
 var current_level: int = 1
@@ -65,10 +70,11 @@ func _process(delta: float) -> void:
 
 func _connect_signals() -> void:
 	music_player.finished.connect(_on_music_finished)
-	start_button.pressed.connect(start_level_1)
-	level2_button.pressed.connect(start_level_2)
-	restart_button.pressed.connect(_restart_current_level)
-	replay_button.pressed.connect(_restart_current_level)
+	pause_button.pressed.connect(_on_pause)
+	resume_button.pressed.connect(_on_resume)
+	pause_menu_button.pressed.connect(_on_pause_menu)
+	restart_button.pressed.connect(_on_restart_pressed)
+	replay_button.pressed.connect(_on_replay_pressed)
 	game_over_menu_button.pressed.connect(_show_start_screen)
 	clear_menu_button.pressed.connect(_show_start_screen)
 	player.hit.connect(_on_player_hit)
@@ -82,18 +88,15 @@ func _connect_signals() -> void:
 	level2_spawner.level_complete.connect(_on_level_complete)
 
 func _setup_ui() -> void:
-	title_label.text = "FUSE: MOURK RUN"
-	subtitle_label.text = "Drag to move  •  Dodge  •  Collect shards"
-	start_button.text = "START LEVEL 1"
-	level2_button.text = "PLAY LEVEL 2"
 	score_label.text = "Score: 0"
-	best_label.text = "Best: %d" % best_score
+	best_label.text = "Best: 0"
 	wave_label.text = "Wave 1/4"
 	health_label.text = ""
 	score_label.visible = false
 	best_label.visible = false
 	wave_label.visible = false
 	health_label.visible = false
+	pause_button.visible = false
 	game_over_panel.visible = false
 	score_summary.text = ""
 	restart_button.text = "RESTART"
@@ -102,6 +105,7 @@ func _setup_ui() -> void:
 	clear_summary.text = ""
 	replay_button.text = "REPLAY"
 	clear_menu_button.text = "MENU"
+	pause_panel.visible = false
 
 func _setup_background(texture_paths: Array) -> void:
 	var viewport_size := get_viewport_rect().size
@@ -124,7 +128,16 @@ func _setup_background(texture_paths: Array) -> void:
 				return
 
 func _show_start_screen() -> void:
+	get_tree().paused = false
 	Transition.fade_to("res://scenes/menu/Menu.tscn")
+
+func _on_restart_pressed() -> void:
+	button_click_sfx.play()
+	_restart_current_level()
+
+func _on_replay_pressed() -> void:
+	button_click_sfx.play()
+	_restart_current_level()
 
 func _restart_current_level() -> void:
 	if state == GameState.COMPLETE and current_level == 1:
@@ -133,6 +146,24 @@ func _restart_current_level() -> void:
 		start_level_2()
 	else:
 		start_level_1()
+
+func _on_pause() -> void:
+	if state != GameState.PLAYING:
+		return
+	state = GameState.PAUSED
+	get_tree().paused = true
+	pause_panel.visible = true
+	pause_button.visible = false
+
+func _on_resume() -> void:
+	state = GameState.PLAYING
+	get_tree().paused = false
+	pause_panel.visible = false
+	pause_button.visible = true
+
+func _on_pause_menu() -> void:
+	get_tree().paused = false
+	_show_start_screen()
 
 func start_level_1() -> void:
 	current_level = 1
@@ -143,13 +174,14 @@ func start_level_1() -> void:
 	total_waves = 4
 	clear_run_objects()
 	player.setup(1)
-	start_panel.visible = false
 	game_over_panel.visible = false
 	level_clear_panel.visible = false
+	pause_panel.visible = false
 	score_label.visible = true
 	best_label.visible = true
 	wave_label.visible = true
 	health_label.visible = false
+	pause_button.visible = true
 	_setup_background(LEVEL_1_BG_TEXTURE_PATHS)
 	player.reset_player()
 	player.enable_control()
@@ -165,13 +197,14 @@ func start_level_2() -> void:
 	total_waves = 4
 	clear_run_objects()
 	player.setup(3)
-	start_panel.visible = false
 	game_over_panel.visible = false
 	level_clear_panel.visible = false
+	pause_panel.visible = false
 	score_label.visible = true
 	best_label.visible = true
 	wave_label.visible = true
 	health_label.visible = true
+	pause_button.visible = true
 	_setup_background(LEVEL_2_BG_TEXTURE_PATHS)
 	player.reset_player()
 	player.enable_control()
@@ -195,6 +228,16 @@ func clear_run_objects() -> void:
 		child.queue_free()
 	for child in pickups_root.get_children():
 		child.queue_free()
+
+func _screen_shake(intensity: float = 7.0, duration: float = 0.28) -> void:
+	var origin := position
+	var tween := create_tween()
+	var steps := 6
+	var step_time := duration / steps
+	for i in steps:
+		var offset := Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
+		tween.tween_property(self, "position", origin + offset, step_time)
+	tween.tween_property(self, "position", origin, step_time * 0.5)
 
 func _on_wave_started(wave: int, total: int) -> void:
 	current_wave = wave
@@ -230,6 +273,7 @@ func _spawn_float_text(text: String, world_pos: Vector2) -> void:
 
 func _on_health_changed(new_health: int) -> void:
 	_update_health_display(new_health)
+	_screen_shake(6.0, 0.22)
 
 func _on_player_hit() -> void:
 	if state != GameState.PLAYING:
@@ -239,6 +283,9 @@ func _on_player_hit() -> void:
 	level2_spawner.stop_run()
 	player.disable_control()
 	clear_run_objects()
+	pause_button.visible = false
+	game_over_sfx.play()
+	_screen_shake(12.0, 0.4)
 	var final_score := int(floor(score))
 	_update_best_score(final_score)
 	var level_name := "Level %d" % current_level
@@ -255,10 +302,12 @@ func _on_level_complete() -> void:
 	level2_spawner.stop_run()
 	player.disable_control()
 	clear_run_objects()
-	var final_score := int(floor(score))
-	_update_best_score(final_score)
+	pause_button.visible = false
+	level_complete_sfx.play()
 	if current_level == 1:
 		Global.unlock_level(2)
+	var final_score := int(floor(score))
+	_update_best_score(final_score)
 	var next_line := "Level 2 awaits!" if current_level == 1 else "More levels coming soon."
 	clear_summary.text = "Level %d Complete!\nScore: %d\nBest: %d\n%s" % [current_level, final_score, best_score, next_line]
 	if current_level == 1:
