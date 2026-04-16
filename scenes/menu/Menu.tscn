@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://fuse_menu"]
 
 [ext_resource type="Script" path="res://scripts/menu/menu.gd" id="1_menu"]
+[ext_resource type="Texture2D" path="res://scenes/menu/run_icon.jpg" id="2_run"]
 
 [node name="Menu" type="Node2D"]
 script = ExtResource("1_menu")
@@ -17,74 +18,105 @@ visible = false
 
 [node name="TitleLabel" type="Label" parent="UI"]
 offset_left = 0.0
-offset_top = 320.0
+offset_top = 300.0
 offset_right = 720.0
-offset_bottom = 400.0
+offset_bottom = 380.0
 horizontal_alignment = 1
 text = "FUSE: MOURK RUN"
 theme_override_font_sizes/font_size = 52
 
 [node name="SubtitleLabel" type="Label" parent="UI"]
 offset_left = 60.0
-offset_top = 410.0
+offset_top = 390.0
 offset_right = 660.0
-offset_bottom = 460.0
+offset_bottom = 436.0
 horizontal_alignment = 1
 text = "Dodge. Collect. Survive."
 theme_override_font_sizes/font_size = 26
 
-[node name="RunButton" type="Button" parent="UI"]
-offset_left = 185.0
-offset_top = 560.0
-offset_right = 535.0
-offset_bottom = 640.0
-text = "RUN"
-theme_override_font_sizes/font_size = 36
+[node name="BestScoreLabel" type="Label" parent="UI"]
+offset_left = 0.0
+offset_top = 446.0
+offset_right = 720.0
+offset_bottom = 486.0
+horizontal_alignment = 1
+text = "BEST: 0"
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.3, 1.0, 0.95, 1.0)
+
+[node name="RunButton" type="TextureButton" parent="UI"]
+offset_left = 130.0
+offset_top = 550.0
+offset_right = 590.0
+offset_bottom = 739.0
+texture_normal = ExtResource("2_run")
+ignore_texture_size = true
+stretch_mode = 5
 
 [node name="ChooseLevelButton" type="Button" parent="UI"]
 offset_left = 210.0
-offset_top = 660.0
+offset_top = 760.0
 offset_right = 510.0
-offset_bottom = 730.0
+offset_bottom = 830.0
 text = "CHOOSE LEVEL"
 theme_override_font_sizes/font_size = 28
 
 [node name="ChooseLevelPanel" type="Panel" parent="UI"]
 visible = false
-offset_left = 100.0
-offset_top = 460.0
-offset_right = 620.0
-offset_bottom = 820.0
+offset_left = 80.0
+offset_top = 380.0
+offset_right = 640.0
+offset_bottom = 900.0
 
 [node name="PanelTitle" type="Label" parent="UI/ChooseLevelPanel"]
 offset_left = 0.0
-offset_top = 30.0
-offset_right = 520.0
-offset_bottom = 80.0
+offset_top = 24.0
+offset_right = 560.0
+offset_bottom = 70.0
 horizontal_alignment = 1
 text = "SELECT LEVEL"
 theme_override_font_sizes/font_size = 32
 
 [node name="Level1Button" type="Button" parent="UI/ChooseLevelPanel"]
-offset_left = 85.0
-offset_top = 110.0
-offset_right = 435.0
-offset_bottom = 185.0
-text = "LEVEL 1  —  The Surface"
+offset_left = 60.0
+offset_top = 100.0
+offset_right = 500.0
+offset_bottom = 195.0
+text = "LEVEL 1\nThe Surface"
 theme_override_font_sizes/font_size = 26
+
+[node name="Level1BestLabel" type="Label" parent="UI/ChooseLevelPanel"]
+offset_left = 60.0
+offset_top = 205.0
+offset_right = 500.0
+offset_bottom = 235.0
+horizontal_alignment = 1
+text = "Best: 0"
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.3, 1.0, 0.95, 0.85)
 
 [node name="Level2Button" type="Button" parent="UI/ChooseLevelPanel"]
-offset_left = 85.0
-offset_top = 205.0
-offset_right = 435.0
-offset_bottom = 280.0
-text = "LEVEL 2  —  The Canvas"
+offset_left = 60.0
+offset_top = 260.0
+offset_right = 500.0
+offset_bottom = 355.0
+text = "LEVEL 2\nThe Canvas"
 theme_override_font_sizes/font_size = 26
 
+[node name="Level2BestLabel" type="Label" parent="UI/ChooseLevelPanel"]
+offset_left = 60.0
+offset_top = 365.0
+offset_right = 500.0
+offset_bottom = 395.0
+horizontal_alignment = 1
+text = "Best: 0"
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.3, 1.0, 0.95, 0.85)
+
 [node name="BackButton" type="Button" parent="UI/ChooseLevelPanel"]
-offset_left = 160.0
-offset_top = 300.0
-offset_right = 360.0
-offset_bottom = 360.0
+offset_left = 175.0
+offset_top = 420.0
+offset_right = 385.0
+offset_bottom = 480.0
 text = "BACK"
 theme_override_font_sizes/font_size = 24
