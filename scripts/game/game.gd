@@ -124,7 +124,7 @@ func _setup_background(texture_paths: Array) -> void:
 				return
 
 func _show_start_screen() -> void:
-	get_tree().change_scene_to_file("res://scenes/menu/Menu.tscn")
+	Transition.fade_to("res://scenes/menu/Menu.tscn")
 
 func _restart_current_level() -> void:
 	if state == GameState.COMPLETE and current_level == 1:
@@ -257,6 +257,8 @@ func _on_level_complete() -> void:
 	clear_run_objects()
 	var final_score := int(floor(score))
 	_update_best_score(final_score)
+	if current_level == 1:
+		Global.unlock_level(2)
 	var next_line := "Level 2 awaits!" if current_level == 1 else "More levels coming soon."
 	clear_summary.text = "Level %d Complete!\nScore: %d\nBest: %d\n%s" % [current_level, final_score, best_score, next_line]
 	if current_level == 1:

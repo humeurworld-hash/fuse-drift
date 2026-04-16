@@ -13,9 +13,41 @@ const SAVE_PATHS := {
 # Legacy single-save path — migrated on first boot
 const LEGACY_SAVE := "user://mourk_run.save"
 
+const UNLOCK_SAVE := "user://mourk_unlocks.save"
+var unlocked_levels: Array = [1]
+
 func _ready() -> void:
 	_migrate_legacy_save()
 	_load_all_scores()
+	_load_unlocks()
+
+func is_unlocked(level: int) -> bool:
+	return level in unlocked_levels
+
+func unlock_level(level: int) -> void:
+	if not level in unlocked_levels:
+		unlocked_levels.append(level)
+		_save_unlocks()
+
+func _load_unlocks() -> void:
+	if FileAccess.file_exists(UNLOCK_SAVE):
+		var file := FileAccess.open(UNLOCK_SAVE, FileAccess.READ)
+		if file:
+			var mask := file.get_32()
+			unlocked_levels.clear()
+			for i in range(8):
+				if mask & (1 << i):
+					unlocked_levels.append(i + 1)
+	if not 1 in unlocked_levels:
+		unlocked_levels.append(1)
+
+func _save_unlocks() -> void:
+	var mask := 0
+	for level in unlocked_levels:
+		mask |= (1 << (level - 1))
+	var file := FileAccess.open(UNLOCK_SAVE, FileAccess.WRITE)
+	if file:
+		file.store_32(mask)
 
 func _load_all_scores() -> void:
 	for level in SAVE_PATHS:
