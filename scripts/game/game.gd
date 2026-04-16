@@ -3,8 +3,6 @@ class_name Game
 
 enum GameState { START, PLAYING, DEAD, COMPLETE }
 
-const SAVE_PATH := "user://mourk_run.save"
-
 const LEVEL_1_BG_TEXTURE_PATHS := [
 	"res://scenes/background/level 1.PNG",
 	"res://assets/art/level1/level1_cave_bg.png",
@@ -46,13 +44,12 @@ const LEVEL_2_BG_TEXTURE_PATHS := [
 
 var state: GameState = GameState.START
 var score: float = 0.0
-var best_score: int = 0
+var best_score: int = 0  # current level's best, loaded from Global on level start
 var current_wave: int = 1
 var total_waves: int = 4
 var current_level: int = 1
 
 func _ready() -> void:
-	best_score = load_best_score()
 	_setup_ui()
 	_connect_signals()
 	match Global.selected_level:
@@ -139,6 +136,7 @@ func _restart_current_level() -> void:
 
 func start_level_1() -> void:
 	current_level = 1
+	best_score = Global.get_best(1)
 	state = GameState.PLAYING
 	score = 0.0
 	current_wave = 1
@@ -160,6 +158,7 @@ func start_level_1() -> void:
 
 func start_level_2() -> void:
 	current_level = 2
+	best_score = Global.get_best(2)
 	state = GameState.PLAYING
 	score = 0.0
 	current_wave = 1
@@ -271,19 +270,5 @@ func _on_music_finished() -> void:
 	music_player.play()
 
 func _update_best_score(final_score: int) -> void:
-	if final_score > best_score:
-		best_score = final_score
-		save_best_score(best_score)
-
-func save_best_score(value: int) -> void:
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if file:
-		file.store_32(value)
-
-func load_best_score() -> int:
-	if not FileAccess.file_exists(SAVE_PATH):
-		return 0
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if file:
-		return file.get_32()
-	return 0
+	Global.save_best(current_level, final_score)
+	best_score = Global.get_best(current_level)
