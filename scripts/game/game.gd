@@ -24,6 +24,7 @@ const LEVEL_2_BG_TEXTURE_PATHS := [
 @onready var hazards_root: Node = $Hazards
 @onready var pickups_root: Node = $Pickups
 
+@onready var ui_layer: CanvasLayer = $UI
 @onready var start_panel: Panel = $UI/StartPanel
 @onready var title_label: Label = $UI/StartPanel/TitleLabel
 @onready var subtitle_label: Label = $UI/StartPanel/SubtitleLabel
@@ -138,7 +139,9 @@ func _show_start_screen() -> void:
 	_setup_background(LEVEL_1_BG_TEXTURE_PATHS)
 
 func _restart_current_level() -> void:
-	if current_level == 2:
+	if state == GameState.COMPLETE and current_level == 1:
+		start_level_2()
+	elif current_level == 2:
 		start_level_2()
 	else:
 		start_level_1()
@@ -212,11 +215,28 @@ func _on_wave_cleared(_cleared_wave: int) -> void:
 	score += 25.0
 	update_hud()
 
-func _on_mourk_collected(points: int) -> void:
+func _on_mourk_collected(points: int, world_pos: Vector2) -> void:
 	if state != GameState.PLAYING:
 		return
 	score += points
 	update_hud()
+	_spawn_float_text("+%d" % points, world_pos)
+
+func _spawn_float_text(text: String, world_pos: Vector2) -> void:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", 42)
+	label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.95, 1.0))
+	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
+	label.add_theme_constant_override("shadow_offset_x", 2)
+	label.add_theme_constant_override("shadow_offset_y", 2)
+	label.position = world_pos - Vector2(28.0, 48.0)
+	ui_layer.add_child(label)
+	var tween := label.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(label, "position", label.position + Vector2(0, -70), 0.65).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(label, "modulate", Color(1, 1, 1, 0), 0.55).set_delay(0.2)
+	tween.chain().tween_callback(label.queue_free)
 
 func _on_health_changed(new_health: int) -> void:
 	_update_health_display(new_health)
@@ -247,9 +267,12 @@ func _on_level_complete() -> void:
 	clear_run_objects()
 	var final_score := int(floor(score))
 	_update_best_score(final_score)
-	var next_level := current_level + 1
-	clear_summary.text = "Level %d Complete!\nScore: %d\nBest: %d\nLevel %d coming soon." % [current_level, final_score, best_score, next_level]
-	replay_button.text = "REPLAY LEVEL %d" % current_level
+	var next_line := "Level 2 awaits!" if current_level == 1 else "More levels coming soon."
+	clear_summary.text = "Level %d Complete!\nScore: %d\nBest: %d\n%s" % [current_level, final_score, best_score, next_line]
+	if current_level == 1:
+		replay_button.text = "PLAY LEVEL 2"
+	else:
+		replay_button.text = "REPLAY LEVEL %d" % current_level
 	level_clear_panel.visible = true
 	update_hud()
 

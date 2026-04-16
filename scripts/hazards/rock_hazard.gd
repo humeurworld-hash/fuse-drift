@@ -7,6 +7,9 @@ class_name RockHazard
 @onready var art: Sprite2D = $Art
 @onready var fallback: Polygon2D = $Fallback
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
+@onready var break_sound: AudioStreamPlayer2D = $BreakSound
+
+var _breaking := false
 
 # Fixed: added actual project path first
 const TEXTURE_PATHS := [
@@ -34,6 +37,18 @@ func _process(delta: float) -> void:
 	rotation += spin_speed * delta
 	if position.y > get_viewport_rect().size.y + 180.0:
 		queue_free()
+
+func break_apart() -> void:
+	if _breaking:
+		return
+	_breaking = true
+	collision_shape.set_deferred("disabled", true)
+	break_sound.play()
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(self, "scale", scale * 1.5, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(self, "modulate", Color(1, 1, 1, 0), 0.28).set_delay(0.06)
+	tween.chain().tween_callback(queue_free)
 
 func _setup_visual() -> void:
 	for texture_path in TEXTURE_PATHS:

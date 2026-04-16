@@ -2,7 +2,7 @@ extends Area2D
 class_name Player
 
 signal hit
-signal mourk_collected(points: int)
+signal mourk_collected(points: int, world_pos: Vector2)
 signal health_changed(new_health: int)
 
 @export var move_lerp_speed: float = 16.0
@@ -49,12 +49,17 @@ func _process(delta: float) -> void:
 func _check_overlaps() -> void:
 	for area in get_overlapping_areas():
 		if area.is_in_group("hazard"):
+			if not invincible and alive:
+				if area.has_method("break_apart"):
+					area.break_apart()
+				elif area.has_method("flash_hit"):
+					area.flash_hit()
 			var dmg: int = area.get("damage") if area.get("damage") != null else 1
 			take_hit(dmg)
 			return
 		elif area.is_in_group("mourk"):
 			if is_instance_valid(area) and area.has_method("collect"):
-				mourk_collected.emit(5)
+				mourk_collected.emit(5, area.global_position)
 				area.collect()
 
 func take_hit(damage: int) -> void:
