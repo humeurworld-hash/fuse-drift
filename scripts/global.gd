@@ -3,11 +3,12 @@ extends Node
 # 0 = show start panel, 1 = auto-start level 1, 2 = auto-start level 2
 var selected_level: int = 0
 
-var best_scores: Dictionary = { 1: 0, 2: 0 }
+var best_scores: Dictionary = { 1: 0, 2: 0, 3: 0 }
 
 const SAVE_PATHS := {
 	1: "user://mourk_run_l1.save",
 	2: "user://mourk_run_l2.save",
+	3: "user://mourk_run_l3.save",
 }
 
 # Legacy single-save path — migrated on first boot
@@ -16,10 +17,17 @@ const LEGACY_SAVE := "user://mourk_run.save"
 const UNLOCK_SAVE := "user://mourk_unlocks.save"
 var unlocked_levels: Array = [1]
 
+# ── DEV FLAG ── set false before shipping ──────────────────────────────────
+const DEV_UNLOCK_ALL := true
+
 func _ready() -> void:
 	_migrate_legacy_save()
 	_load_all_scores()
 	_load_unlocks()
+	if DEV_UNLOCK_ALL:
+		for lvl in [1, 2, 3]:
+			if not lvl in unlocked_levels:
+				unlocked_levels.append(lvl)
 
 func is_unlocked(level: int) -> bool:
 	return level in unlocked_levels

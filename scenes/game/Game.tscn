@@ -1,12 +1,18 @@
 [gd_scene format=3 uid="uid://fuse_game"]
 
 [ext_resource type="Script" path="res://scripts/game/game.gd" id="1_game"]
+[ext_resource type="Texture2D" path="res://assets/ui/shard_hub.PNG" id="20_shardhub"]
+[ext_resource type="Texture2D" path="res://assets/ui/life_hub.PNG" id="21_lifehub"]
 [ext_resource type="AudioStream" path="res://assets/audio/glitch-cathedral.mp3" id="10_music"]
 [ext_resource type="AudioStream" path="res://assets/audio/level_complete.mp3" id="11_complete"]
 [ext_resource type="AudioStream" path="res://assets/audio/game_over.mp3" id="12_gameover"]
 [ext_resource type="AudioStream" path="res://assets/audio/button_click.mp3" id="13_click"]
 [ext_resource type="Script" path="res://scripts/game/level1_spawner.gd" id="2_spawner1"]
 [ext_resource type="Script" path="res://scripts/game/level2_spawner.gd" id="3_spawner2"]
+[ext_resource type="Script" path="res://scripts/game/level3_spawner.gd" id="14_spawner3"]
+[ext_resource type="PackedScene" path="res://scenes/hazards/level 3 hazards/Clock1.tscn" id="15_clock1"]
+[ext_resource type="PackedScene" path="res://scenes/hazards/level 3 hazards/Clock2.tscn" id="16_clock2"]
+[ext_resource type="PackedScene" path="res://scenes/hazards/level 3 hazards/Clock3.tscn" id="17_clock3"]
 [ext_resource type="PackedScene" path="res://scenes/player/fuse/Player.tscn" id="4_player"]
 [ext_resource type="PackedScene" path="res://scenes/hazards/RockHazard.tscn" id="5_rock"]
 [ext_resource type="PackedScene" path="res://scenes/pickups/MourkShard.tscn" id="6_shard"]
@@ -45,6 +51,13 @@ drone2_scene = ExtResource("8_drone2")
 drone3_scene = ExtResource("9_drone3")
 shard_scene = ExtResource("6_shard")
 
+[node name="Level3Spawner" type="Node" parent="."]
+script = ExtResource("14_spawner3")
+clock1_scene = ExtResource("15_clock1")
+clock2_scene = ExtResource("16_clock2")
+clock3_scene = ExtResource("17_clock3")
+shard_scene = ExtResource("6_shard")
+
 [node name="MusicPlayer" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("10_music")
 volume_db = -8.0
@@ -64,45 +77,77 @@ volume_db = -4.0
 
 [node name="UI" type="CanvasLayer" parent="."]
 
-[node name="ScoreLabel" type="Label" parent="UI"]
-offset_left = 24.0
-offset_top = 24.0
+[node name="LifeHub" type="TextureRect" parent="UI"]
+mouse_filter = 2
+visible = false
+offset_left = 4.0
+offset_top = 4.0
 offset_right = 224.0
-offset_bottom = 60.0
-text = "Score: 0"
-visible = false
+offset_bottom = 72.0
+expand_mode = 1
+texture = ExtResource("21_lifehub")
+stretch_mode = 0
 
-[node name="WaveLabel" type="Label" parent="UI"]
-offset_left = 270.0
-offset_top = 24.0
-offset_right = 470.0
-offset_bottom = 60.0
-horizontal_alignment = 1
-text = "Wave 1/4"
+[node name="ScoreHub" type="TextureRect" parent="UI"]
+mouse_filter = 2
 visible = false
-
-[node name="BestLabel" type="Label" parent="UI"]
-offset_left = 480.0
-offset_top = 24.0
-offset_right = 636.0
-offset_bottom = 60.0
-horizontal_alignment = 2
-text = "Best: 0"
-visible = false
+offset_left = 460.0
+offset_top = 4.0
+offset_right = 648.0
+offset_bottom = 72.0
+expand_mode = 1
+texture = ExtResource("20_shardhub")
+stretch_mode = 0
 
 [node name="HealthLabel" type="Label" parent="UI"]
-offset_left = 24.0
-offset_top = 62.0
-offset_right = 340.0
-offset_bottom = 96.0
+mouse_filter = 2
+visible = false
+offset_left = 82.0
+offset_top = 14.0
+offset_right = 220.0
+offset_bottom = 62.0
 text = "♥ ♥ ♥"
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(1.0, 0.35, 0.25, 1.0)
+
+[node name="ScoreLabel" type="Label" parent="UI"]
+mouse_filter = 2
+visible = false
+offset_left = 464.0
+offset_top = 14.0
+offset_right = 644.0
+offset_bottom = 62.0
+horizontal_alignment = 1
+text = "Score: 0"
+theme_override_font_sizes/font_size = 18
+
+[node name="WaveLabel" type="Label" parent="UI"]
+visible = false
+offset_left = 232.0
+offset_top = 14.0
+offset_right = 456.0
+offset_bottom = 58.0
+horizontal_alignment = 1
+text = "Wave 1/4"
+theme_override_font_sizes/font_size = 18
+
+[node name="BestLabel" type="Label" parent="UI"]
+visible = false
+offset_left = 460.0
+offset_top = 72.0
+offset_right = 648.0
+offset_bottom = 100.0
+horizontal_alignment = 2
+text = "Best: 0"
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.3, 1.0, 0.95, 0.9)
 visible = false
 
 [node name="PauseButton" type="Button" parent="UI"]
-offset_left = 648.0
-offset_top = 18.0
-offset_right = 710.0
-offset_bottom = 62.0
+offset_left = 656.0
+offset_top = 4.0
+offset_right = 716.0
+offset_bottom = 44.0
 text = "II"
 theme_override_font_sizes/font_size = 20
 visible = false

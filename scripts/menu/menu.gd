@@ -5,15 +5,28 @@ const BG_PATHS := [
 	"res://scenes/menu/menu_bg.png",
 ]
 
+const LEVEL_NAMES := {
+	1: "Level 1 — The Surface",
+	2: "Level 2 — The Canvas",
+	3: "Level 3 — The Loops",
+}
+
 @onready var fallback_bg: ColorRect = $FallbackBG
 @onready var background_art: Sprite2D = $BackgroundArt
 @onready var best_score_label: Label = $UI/BestScoreLabel
+@onready var continue_bg: TextureRect = $UI/ContinueBg
+@onready var continue_button: Button = $UI/ContinueButton
+@onready var continue_level_label: Label = $UI/ContinueLevelLabel
 @onready var run_button: TextureButton = $UI/RunButton
 @onready var levels_button: Button = $UI/LevelsButton
+
+var _continue_level: int = 1
 
 func _ready() -> void:
 	_setup_background()
 	_load_scores()
+	_setup_continue()
+	continue_button.pressed.connect(_on_continue)
 	run_button.pressed.connect(_on_run)
 	levels_button.pressed.connect(_on_levels)
 
@@ -37,6 +50,32 @@ func _setup_background() -> void:
 func _load_scores() -> void:
 	var overall := Global.get_overall_best()
 	best_score_label.text = "BEST: %s" % (str(overall) if overall > 0 else "—")
+
+func _setup_continue() -> void:
+	# Find the highest unlocked level that has been played (has a best score),
+	# or simply the highest unlocked level if they haven't played it yet.
+	var highest_unlocked := 1
+	for lvl in [3, 2]:
+		if Global.is_unlocked(lvl):
+			highest_unlocked = lvl
+			break
+
+	# Only show Continue if something beyond Level 1 is accessible
+	if highest_unlocked <= 1:
+		continue_bg.visible = false
+		continue_button.visible = false
+		continue_level_label.visible = false
+		return
+
+	_continue_level = highest_unlocked
+	continue_bg.visible = true
+	continue_button.visible = true
+	continue_level_label.visible = true
+	continue_level_label.text = LEVEL_NAMES.get(highest_unlocked, "")
+
+func _on_continue() -> void:
+	Global.selected_level = _continue_level
+	Transition.fade_to("res://scenes/game/Game.tscn")
 
 func _on_run() -> void:
 	Global.selected_level = 1

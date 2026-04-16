@@ -25,6 +25,17 @@ const INVINCIBILITY_DURATION := 1.2
 var _current_anim: StringName = &""
 var _bob_tween: Tween = null
 
+# Position history for rewind
+var _pos_history: PackedFloat32Array = PackedFloat32Array()
+var _history_timer: float = 0.0
+const HISTORY_INTERVAL := 0.08   # sample every 80ms
+const HISTORY_SAMPLES := 40      # ~3.2 seconds of history
+
+# Rewind state
+var _rewinding: bool = false
+var _rewind_timer: float = 0.0
+const REWIND_SLUGGISH_DURATION := 1.6
+
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 
 func _ready() -> void:
@@ -44,11 +55,28 @@ func _process(delta: float) -> void:
 			invincible = false
 			modulate = Color(1, 1, 1, 1)
 
-	position.x = lerpf(position.x, target_x, delta * move_lerp_speed)
+	if _rewind_timer > 0.0:
+		_rewind_timer -= delta
+		if _rewind_timer <= 0.0:
+			_rewinding = false
+
+	# Sluggish control while rewinding
+	var lerp_speed := move_lerp_speed * 0.3 if _rewinding else move_lerp_speed
+	position.x = lerpf(position.x, target_x, delta * lerp_speed)
 	position.x = clampf(position.x, screen_padding, screen_size.x - screen_padding)
 	position.y = screen_size.y * fixed_y_ratio
+
+	_record_history(delta)
 	_update_animation()
 	_check_overlaps()
+
+func _record_history(delta: float) -> void:
+	_history_timer += delta
+	if _history_timer >= HISTORY_INTERVAL:
+		_history_timer = 0.0
+		_pos_history.append(position.x)
+		while _pos_history.size() > HISTORY_SAMPLES:
+			_pos_history.remove_at(0)
 
 func _update_animation() -> void:
 	var dx := target_x - position.x
@@ -84,17 +112,58 @@ func _check_overlaps() -> void:
 	for area in get_overlapping_areas():
 		if area.is_in_group("hazard"):
 			if not invincible and alive:
-				if area.has_method("break_apart"):
-					area.break_apart()
-				elif area.has_method("flash_hit"):
+				var rewinder: bool = area.get("is_rewinder") if area.get("is_rewinder") != null else false
+				if rewinder:
 					area.flash_hit()
-			var dmg: int = area.get("damage") if area.get("damage") != null else 1
-			take_hit(dmg)
+					apply_rewind()
+				else:
+					if area.has_method("break_apart"):
+						area.break_apart()
+					elif area.has_method("flash_hit"):
+						area.flash_hit()
+					var dmg: int = area.get("damage") if area.get("damage") != null else 1
+					take_hit(dmg)
 			return
 		elif area.is_in_group("mourk"):
 			if is_instance_valid(area) and area.has_method("collect"):
 				mourk_collected.emit(5, area.global_position)
 				area.collect()
+
+func apply_rewind() -> void:
+	if invincible or not alive:
+		return
+
+	# Snap back to position ~2.4 seconds ago
+	var steps_back := int(2.4 / HISTORY_INTERVAL)
+	var rewind_x: float
+	if _pos_history.size() >= steps_back:
+		rewind_x = _pos_history[_pos_history.size() - steps_back]
+	elif _pos_history.size() > 0:
+		rewind_x = _pos_history[0]
+	else:
+		rewind_x = screen_size.x * 0.5
+
+	position.x = rewind_x
+	target_x = rewind_x
+	_rewinding = true
+	_rewind_timer = REWIND_SLUGGISH_DURATION
+
+	# Invincibility so they can't immediately get rewound again
+	invincible = true
+	_invincibility_timer = INVINCIBILITY_DURATION
+
+	# Visual: glitch flash cyan
+	if sprite:
+		_current_anim = &""
+		sprite.play(&"glitch")
+	var tween := create_tween()
+	tween.tween_property(self, "modulate", Color(0.2, 0.9, 1.0, 1.0), 0.08)
+	tween.tween_property(self, "modulate", Color(1.0, 1.0, 1.0, 0.6), 0.3)
+	tween.tween_property(self, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.3)
+	tween.tween_callback(func():
+		if alive and sprite:
+			_current_anim = &""
+	)
 
 func take_hit(damage: int) -> void:
 	if invincible or not alive:
@@ -139,6 +208,8 @@ func setup(hp: int) -> void:
 	health = hp
 	invincible = false
 	_invincibility_timer = 0.0
+	_rewinding = false
+	_rewind_timer = 0.0
 
 func enable_control() -> void:
 	alive = true
@@ -162,6 +233,7 @@ func die() -> void:
 	controls_enabled = false
 	dragging = false
 	invincible = false
+	_rewinding = false
 	_stop_hover_bob()
 	if sprite:
 		sprite.position = Vector2.ZERO
@@ -176,6 +248,9 @@ func reset_player() -> void:
 	alive = false
 	invincible = false
 	_invincibility_timer = 0.0
+	_rewinding = false
+	_rewind_timer = 0.0
+	_pos_history.clear()
 	_current_anim = &""
 	health = max_health
 	modulate = Color(1, 1, 1, 1)

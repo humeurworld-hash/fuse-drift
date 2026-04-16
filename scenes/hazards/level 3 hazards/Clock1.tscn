@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://clock1"]
+
+[ext_resource type="Script" path="res://scripts/hazards/clock_hazard.gd" id="1_clk"]
+[ext_resource type="Texture2D" path="res://scenes/hazards/level 3 hazards/clock1.PNG" id="2_tex"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1"]
+radius = 55.0
+
+[node name="Clock1" type="Area2D"]
+collision_layer = 1
+collision_mask = 1
+monitoring = false
+monitorable = true
+script = ExtResource("1_clk")
+tier = 1
+damage = 1
+is_rewinder = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_1")
+
+[node name="Body" type="Sprite2D" parent="."]
+scale = Vector2(0.08, 0.08)
+texture = ExtResource("2_tex")

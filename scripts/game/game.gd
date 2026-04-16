@@ -13,11 +13,16 @@ const LEVEL_2_BG_TEXTURE_PATHS := [
 	"res://assets/art/level2/background.png",
 ]
 
+const LEVEL_3_BG_TEXTURE_PATHS := [
+	"res://scenes/background/level 3.PNG",
+]
+
 @onready var background_fallback: ColorRect = $Background/FallbackBG
 @onready var background_art: Sprite2D = $Background/BackgroundArt
 @onready var player: Player = $Player
 @onready var level1_spawner: Level1Spawner = $Level1Spawner
 @onready var level2_spawner: Level2Spawner = $Level2Spawner
+@onready var level3_spawner: Level3Spawner = $Level3Spawner
 @onready var hazards_root: Node = $Hazards
 @onready var pickups_root: Node = $Pickups
 
@@ -27,6 +32,8 @@ const LEVEL_2_BG_TEXTURE_PATHS := [
 @onready var button_click_sfx: AudioStreamPlayer = $ButtonClickSfx
 @onready var ui_layer: CanvasLayer = $UI
 
+@onready var life_hub: TextureRect = $UI/LifeHub
+@onready var score_hub: TextureRect = $UI/ScoreHub
 @onready var score_label: Label = $UI/ScoreLabel
 @onready var best_label: Label = $UI/BestLabel
 @onready var wave_label: Label = $UI/WaveLabel
@@ -54,12 +61,19 @@ var current_wave: int = 1
 var total_waves: int = 4
 var current_level: int = 1
 
+# Shard streak multiplier
+var shard_streak: int = 0
+const STREAK_THRESHOLDS := [15, 10, 5, 0]   # checked in order; first match wins
+const STREAK_MULTIPLIERS := [4, 3, 2, 1]
+const BASE_SHARD_PTS := 5
+
 func _ready() -> void:
 	_setup_ui()
 	_connect_signals()
 	match Global.selected_level:
 		1: start_level_1()
 		2: start_level_2()
+		3: start_level_3()
 		_: _show_start_screen()
 
 func _process(delta: float) -> void:
@@ -86,12 +100,17 @@ func _connect_signals() -> void:
 	level2_spawner.wave_started.connect(_on_wave_started)
 	level2_spawner.wave_cleared.connect(_on_wave_cleared)
 	level2_spawner.level_complete.connect(_on_level_complete)
+	level3_spawner.wave_started.connect(_on_wave_started)
+	level3_spawner.wave_cleared.connect(_on_wave_cleared)
+	level3_spawner.level_complete.connect(_on_level_complete)
 
 func _setup_ui() -> void:
 	score_label.text = "Score: 0"
 	best_label.text = "Best: 0"
 	wave_label.text = "Wave 1/4"
 	health_label.text = ""
+	score_hub.visible = false
+	life_hub.visible = false
 	score_label.visible = false
 	best_label.visible = false
 	wave_label.visible = false
@@ -142,6 +161,10 @@ func _on_replay_pressed() -> void:
 func _restart_current_level() -> void:
 	if state == GameState.COMPLETE and current_level == 1:
 		start_level_2()
+	elif state == GameState.COMPLETE and current_level == 2:
+		start_level_3()
+	elif current_level == 3:
+		start_level_3()
 	elif current_level == 2:
 		start_level_2()
 	else:
@@ -170,6 +193,7 @@ func start_level_1() -> void:
 	best_score = Global.get_best(1)
 	state = GameState.PLAYING
 	score = 0.0
+	shard_streak = 0
 	current_wave = 1
 	total_waves = 4
 	clear_run_objects()
@@ -177,6 +201,8 @@ func start_level_1() -> void:
 	game_over_panel.visible = false
 	level_clear_panel.visible = false
 	pause_panel.visible = false
+	score_hub.visible = true
+	life_hub.visible = false
 	score_label.visible = true
 	best_label.visible = true
 	wave_label.visible = true
@@ -193,6 +219,7 @@ func start_level_2() -> void:
 	best_score = Global.get_best(2)
 	state = GameState.PLAYING
 	score = 0.0
+	shard_streak = 0
 	current_wave = 1
 	total_waves = 4
 	clear_run_objects()
@@ -200,6 +227,8 @@ func start_level_2() -> void:
 	game_over_panel.visible = false
 	level_clear_panel.visible = false
 	pause_panel.visible = false
+	score_hub.visible = true
+	life_hub.visible = true
 	score_label.visible = true
 	best_label.visible = true
 	wave_label.visible = true
@@ -209,6 +238,33 @@ func start_level_2() -> void:
 	player.reset_player()
 	player.enable_control()
 	level2_spawner.start_run()
+	_update_health_display(3)
+	update_hud()
+
+func start_level_3() -> void:
+	current_level = 3
+	best_score = Global.get_best(3)
+	state = GameState.PLAYING
+	score = 0.0
+	shard_streak = 0
+	current_wave = 1
+	total_waves = 4
+	clear_run_objects()
+	player.setup(3)
+	game_over_panel.visible = false
+	level_clear_panel.visible = false
+	pause_panel.visible = false
+	score_hub.visible = true
+	life_hub.visible = true
+	score_label.visible = true
+	best_label.visible = true
+	wave_label.visible = true
+	health_label.visible = true
+	pause_button.visible = true
+	_setup_background(LEVEL_3_BG_TEXTURE_PATHS)
+	player.reset_player()
+	player.enable_control()
+	level3_spawner.start_run()
 	_update_health_display(3)
 	update_hud()
 
@@ -248,12 +304,24 @@ func _on_wave_cleared(_cleared_wave: int) -> void:
 	score += 25.0
 	update_hud()
 
-func _on_mourk_collected(points: int, world_pos: Vector2) -> void:
+func _get_shard_multiplier() -> int:
+	for i in STREAK_THRESHOLDS.size():
+		if shard_streak >= STREAK_THRESHOLDS[i]:
+			return STREAK_MULTIPLIERS[i]
+	return 1
+
+func _on_mourk_collected(_base_points: int, world_pos: Vector2) -> void:
 	if state != GameState.PLAYING:
 		return
-	score += points
+	shard_streak += 1
+	var mult := _get_shard_multiplier()
+	var pts := BASE_SHARD_PTS * mult
+	score += pts
 	update_hud()
-	_spawn_float_text("+%d" % points, world_pos)
+	var label_text := "+%d" % pts
+	if mult > 1:
+		label_text += "  ×%d" % mult
+	_spawn_float_text(label_text, world_pos)
 
 func _spawn_float_text(text: String, world_pos: Vector2) -> void:
 	var label := Label.new()
@@ -278,12 +346,16 @@ func _on_health_changed(new_health: int) -> void:
 func _on_player_hit() -> void:
 	if state != GameState.PLAYING:
 		return
+	shard_streak = 0
 	state = GameState.DEAD
 	level1_spawner.stop_run()
 	level2_spawner.stop_run()
+	level3_spawner.stop_run()
 	player.disable_control()
 	clear_run_objects()
 	pause_button.visible = false
+	score_hub.visible = false
+	life_hub.visible = false
 	game_over_sfx.play()
 	_screen_shake(12.0, 0.4)
 	var final_score := int(floor(score))
@@ -300,20 +372,29 @@ func _on_level_complete() -> void:
 	score += 100.0
 	level1_spawner.stop_run()
 	level2_spawner.stop_run()
+	level3_spawner.stop_run()
 	player.disable_control()
 	clear_run_objects()
 	pause_button.visible = false
+	score_hub.visible = false
+	life_hub.visible = false
 	level_complete_sfx.play()
 	if current_level == 1:
 		Global.unlock_level(2)
+	elif current_level == 2:
+		Global.unlock_level(3)
 	var final_score := int(floor(score))
 	_update_best_score(final_score)
-	var next_line := "Level 2 awaits!" if current_level == 1 else "More levels coming soon."
+	var next_line: String
+	match current_level:
+		1: next_line = "Level 2 — The Canvas awaits!"
+		2: next_line = "Level 3 — The Loops awaits!"
+		_: next_line = "More levels coming soon."
 	clear_summary.text = "Level %d Complete!\nScore: %d\nBest: %d\n%s" % [current_level, final_score, best_score, next_line]
-	if current_level == 1:
-		replay_button.text = "PLAY LEVEL 2"
-	else:
-		replay_button.text = "REPLAY LEVEL %d" % current_level
+	match current_level:
+		1: replay_button.text = "PLAY LEVEL 2"
+		2: replay_button.text = "PLAY LEVEL 3"
+		_: replay_button.text = "REPLAY LEVEL %d" % current_level
 	level_clear_panel.visible = true
 	update_hud()
 

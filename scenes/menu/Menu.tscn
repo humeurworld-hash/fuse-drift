@@ -1,7 +1,8 @@
 [gd_scene format=3 uid="uid://fuse_menu"]
 
 [ext_resource type="Script" path="res://scripts/menu/menu.gd" id="1_menu"]
-[ext_resource type="Texture2D" path="res://scenes/menu/run_icon.jpg" id="2_run"]
+[ext_resource type="Texture2D" path="res://assets/ui/run_button.PNG" id="2_run"]
+[ext_resource type="Texture2D" path="res://assets/ui/shard_hub.PNG" id="3_shard"]
 
 [node name="Menu" type="Node2D"]
 script = ExtResource("1_menu")
@@ -49,19 +50,62 @@ text = "BEST: —"
 theme_override_font_sizes/font_size = 22
 theme_override_colors/font_color = Color(0.3, 1.0, 0.95, 1.0)
 
+[node name="ContinueBg" type="TextureRect" parent="UI"]
+visible = false
+mouse_filter = 2
+offset_left = 90.0
+offset_top = 862.0
+offset_right = 630.0
+offset_bottom = 1000.0
+texture = ExtResource("3_shard")
+stretch_mode = 1
+
+[node name="ContinueButton" type="Button" parent="UI"]
+visible = false
+offset_left = 90.0
+offset_top = 862.0
+offset_right = 630.0
+offset_bottom = 1000.0
+text = "▶  CONTINUE"
+theme_override_font_sizes/font_size = 34
+theme_override_colors/font_color = Color(0.15, 0.95, 0.9, 1.0)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+
+[node name="ContinueLevelLabel" type="Label" parent="UI"]
+visible = false
+offset_left = 90.0
+offset_top = 1006.0
+offset_right = 630.0
+offset_bottom = 1038.0
+horizontal_alignment = 1
+text = "Level 2 — The Canvas"
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.75, 0.75, 0.75, 0.9)
+
 [node name="RunButton" type="TextureButton" parent="UI"]
-offset_left = 130.0
-offset_top = 960.0
-offset_right = 590.0
-offset_bottom = 1100.0
+offset_left = 110.0
+offset_top = 1056.0
+offset_right = 610.0
+offset_bottom = 1186.0
 texture_normal = ExtResource("2_run")
 ignore_texture_size = true
-stretch_mode = 5
+stretch_mode = 6
+
+[node name="LevelsBg" type="TextureRect" parent="UI"]
+mouse_filter = 2
+offset_left = 160.0
+offset_top = 1202.0
+offset_right = 560.0
+offset_bottom = 1262.0
+texture = ExtResource("3_shard")
+stretch_mode = 1
 
 [node name="LevelsButton" type="Button" parent="UI"]
-offset_left = 210.0
-offset_top = 1120.0
-offset_right = 510.0
-offset_bottom = 1195.0
+offset_left = 160.0
+offset_top = 1202.0
+offset_right = 560.0
+offset_bottom = 1262.0
 text = "LEVELS"
 theme_override_font_sizes/font_size = 30
