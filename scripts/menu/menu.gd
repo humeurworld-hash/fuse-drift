@@ -1,8 +1,8 @@
 extends Node2D
 
 const BG_PATHS := [
-	"res://scenes/menu/Landing Page.PNG",
 	"res://scenes/menu/Menu Background.PNG",
+	"res://scenes/menu/Landing Page.PNG",
 	"res://scenes/menu/menu_bg.PNG",
 	"res://scenes/menu/menu_bg.png",
 ]
