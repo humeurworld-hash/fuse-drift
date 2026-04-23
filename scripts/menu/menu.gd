@@ -1,6 +1,8 @@
 extends Node2D
 
 const BG_PATHS := [
+	"res://scenes/menu/Landing Page.PNG",
+	"res://scenes/menu/Menu Background.PNG",
 	"res://scenes/menu/menu_bg.PNG",
 	"res://scenes/menu/menu_bg.png",
 ]
@@ -18,7 +20,8 @@ const LEVEL_NAMES := {
 @onready var continue_button: Button = $UI/ContinueButton
 @onready var continue_level_label: Label = $UI/ContinueLevelLabel
 @onready var run_button: TextureButton = $UI/RunButton
-@onready var levels_button: Button = $UI/LevelsButton
+@onready var levels_button: TextureButton = $UI/LevelsButton
+@onready var settings_button: TextureButton = $UI/SettingsButton
 
 var _continue_level: int = 1
 
@@ -29,6 +32,7 @@ func _ready() -> void:
 	continue_button.pressed.connect(_on_continue)
 	run_button.pressed.connect(_on_run)
 	levels_button.pressed.connect(_on_levels)
+	settings_button.pressed.connect(_on_settings)
 
 func _setup_background() -> void:
 	var vp := get_viewport_rect().size
@@ -83,3 +87,6 @@ func _on_run() -> void:
 
 func _on_levels() -> void:
 	Transition.fade_to("res://scenes/levels/LevelSelect.tscn")
+
+func _on_settings() -> void:
+	pass  # placeholder — settings page not yet built

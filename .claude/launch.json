@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Run Game (Debug)",
+      "runtimeExecutable": "/Users/humeurworld/Desktop/Godot.app/Contents/MacOS/Godot",
+      "runtimeArgs": ["--path", "/Users/humeurworld/fuse-drift", "--debug"],
+      "port": 6007
+    },
+    {
+      "name": "Open Editor",
+      "runtimeExecutable": "/Users/humeurworld/Desktop/Godot.app/Contents/MacOS/Godot",
+      "runtimeArgs": ["--path", "/Users/humeurworld/fuse-drift", "--editor"],
+      "port": 6007
+    },
+    {
+      "name": "Headless (Script Testing)",
+      "runtimeExecutable": "/Users/humeurworld/Desktop/Godot.app/Contents/MacOS/Godot",
+      "runtimeArgs": ["--path", "/Users/humeurworld/fuse-drift", "--headless"],
+      "port": 6007
+    }
+  ]
+}

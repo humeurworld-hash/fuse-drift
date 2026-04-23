@@ -11,37 +11,38 @@ signal level_complete
 @export var shard_scene: PackedScene = preload("res://scenes/pickups/MourkShard.tscn")
 @export var side_padding: float = 72.0
 
-# tiers array: weighted pool — spawner picks randomly from it each interval
 const WAVE_DATA := [
 	{
-		"duration": 15.0,
+		"duration": 25.0,
 		"interval": 2.2,
 		"shard_interval": 2.8,
 		"speed": 260.0,
 		"tiers": [1, 1, 1]
 	},
 	{
-		"duration": 17.0,
+		"duration": 29.0,
 		"interval": 1.8,
 		"shard_interval": 2.4,
 		"speed": 310.0,
 		"tiers": [1, 1, 2]
 	},
 	{
-		"duration": 19.0,
+		"duration": 33.0,
 		"interval": 1.4,
 		"shard_interval": 2.0,
 		"speed": 360.0,
 		"tiers": [1, 2, 2]
 	},
 	{
-		"duration": 21.0,
+		"duration": 38.0,
 		"interval": 1.1,
 		"shard_interval": 1.8,
 		"speed": 420.0,
 		"tiers": [1, 2, 3]
 	}
 ]
+
+const WAVE_GAP := 1.8
 
 @onready var hazards_root: Node = $"../Hazards"
 @onready var pickups_root: Node = $"../Pickups"
@@ -52,18 +53,35 @@ var wave_time := 0.0
 var drone_timer := 0.0
 var shard_timer := 0.0
 
+var _in_gap := false
+var _gap_timer := 0.0
+var _next_wave_index := 0
+
 func start_run() -> void:
 	active = true
 	wave_index = 0
 	wave_time = 0.0
+	_in_gap = false
+	_gap_timer = 0.0
 	_reset_timers_for_current_wave()
 	wave_started.emit(1, WAVE_DATA.size())
 
 func stop_run() -> void:
 	active = false
+	_in_gap = false
 
 func _process(delta: float) -> void:
 	if not active:
+		return
+
+	if _in_gap:
+		_gap_timer -= delta
+		if _gap_timer <= 0.0:
+			_in_gap = false
+			wave_index = _next_wave_index
+			wave_time = 0.0
+			_reset_timers_for_current_wave()
+			wave_started.emit(wave_index + 1, WAVE_DATA.size())
 		return
 
 	var cfg: Dictionary = WAVE_DATA[wave_index]
@@ -85,10 +103,9 @@ func _process(delta: float) -> void:
 			active = false
 			level_complete.emit()
 		else:
-			wave_index += 1
-			wave_time = 0.0
-			_reset_timers_for_current_wave()
-			wave_started.emit(wave_index + 1, WAVE_DATA.size())
+			_in_gap = true
+			_gap_timer = WAVE_GAP
+			_next_wave_index = wave_index + 1
 
 func _reset_timers_for_current_wave() -> void:
 	var cfg: Dictionary = WAVE_DATA[wave_index]

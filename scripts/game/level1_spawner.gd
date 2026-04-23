@@ -11,34 +11,37 @@ signal level_complete
 
 const WAVE_DATA := [
 	{
-		"duration": 12.0,
+		"duration": 22.0,
 		"rock_interval": 1.25,
 		"shard_interval": 2.30,
 		"rock_speed": 340.0,
 		"double_chance": 0.00
 	},
 	{
-		"duration": 14.0,
+		"duration": 26.0,
 		"rock_interval": 1.00,
 		"shard_interval": 2.10,
 		"rock_speed": 420.0,
 		"double_chance": 0.18
 	},
 	{
-		"duration": 16.0,
+		"duration": 30.0,
 		"rock_interval": 0.82,
 		"shard_interval": 1.90,
 		"rock_speed": 500.0,
 		"double_chance": 0.28
 	},
 	{
-		"duration": 18.0,
+		"duration": 35.0,
 		"rock_interval": 0.65,
 		"shard_interval": 1.70,
 		"rock_speed": 590.0,
 		"double_chance": 0.40
 	}
 ]
+
+# Seconds of silence between waves — gives the banner time to breathe
+const WAVE_GAP := 1.8
 
 @onready var hazards_root: Node = $"../Hazards"
 @onready var pickups_root: Node = $"../Pickups"
@@ -49,18 +52,36 @@ var wave_time := 0.0
 var rock_timer := 0.0
 var shard_timer := 0.0
 
+var _in_gap := false
+var _gap_timer := 0.0
+var _next_wave_index := 0
+
 func start_run() -> void:
 	active = true
 	wave_index = 0
 	wave_time = 0.0
+	_in_gap = false
+	_gap_timer = 0.0
 	_reset_timers_for_current_wave()
 	wave_started.emit(1, WAVE_DATA.size())
 
 func stop_run() -> void:
 	active = false
+	_in_gap = false
 
 func _process(delta: float) -> void:
 	if not active:
+		return
+
+	# Between-wave silence
+	if _in_gap:
+		_gap_timer -= delta
+		if _gap_timer <= 0.0:
+			_in_gap = false
+			wave_index = _next_wave_index
+			wave_time = 0.0
+			_reset_timers_for_current_wave()
+			wave_started.emit(wave_index + 1, WAVE_DATA.size())
 		return
 
 	var cfg: Dictionary = WAVE_DATA[wave_index]
@@ -82,10 +103,9 @@ func _process(delta: float) -> void:
 			active = false
 			level_complete.emit()
 		else:
-			wave_index += 1
-			wave_time = 0.0
-			_reset_timers_for_current_wave()
-			wave_started.emit(wave_index + 1, WAVE_DATA.size())
+			_in_gap = true
+			_gap_timer = WAVE_GAP
+			_next_wave_index = wave_index + 1
 
 func _reset_timers_for_current_wave() -> void:
 	var cfg: Dictionary = WAVE_DATA[wave_index]
@@ -95,7 +115,6 @@ func _reset_timers_for_current_wave() -> void:
 func _spawn_rock(cfg: Dictionary) -> void:
 	if rock_scene == null:
 		return
-	# Fixed: get_viewport_rect() doesn't exist on Node — use get_viewport()
 	var width := get_viewport().get_visible_rect().size.x
 	var rock: RockHazard = rock_scene.instantiate()
 	rock.position = Vector2(randf_range(side_padding, width - side_padding), -120.0)
@@ -113,7 +132,6 @@ func _spawn_rock(cfg: Dictionary) -> void:
 func _spawn_shard(cfg: Dictionary) -> void:
 	if shard_scene == null:
 		return
-	# Fixed: get_viewport_rect() doesn't exist on Node — use get_viewport()
 	var width := get_viewport().get_visible_rect().size.x
 	var shard: MourkShard = shard_scene.instantiate()
 	shard.position = Vector2(randf_range(side_padding, width - side_padding), -96.0)

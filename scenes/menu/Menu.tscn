@@ -3,6 +3,9 @@
 [ext_resource type="Script" path="res://scripts/menu/menu.gd" id="1_menu"]
 [ext_resource type="Texture2D" path="res://assets/ui/run_button.PNG" id="2_run"]
 [ext_resource type="Texture2D" path="res://assets/ui/shard_hub.PNG" id="3_shard"]
+[ext_resource type="Texture2D" path="res://scenes/menu/Play Button.PNG" id="4_play"]
+[ext_resource type="Texture2D" path="res://scenes/menu/Level Seclet Button.PNG" id="5_levels"]
+[ext_resource type="Texture2D" path="res://scenes/menu/Settings button.PNG" id="6_settings"]
 
 [node name="Menu" type="Node2D"]
 script = ExtResource("1_menu")
@@ -85,27 +88,28 @@ theme_override_font_sizes/font_size = 20
 theme_override_colors/font_color = Color(0.75, 0.75, 0.75, 0.9)
 
 [node name="RunButton" type="TextureButton" parent="UI"]
-offset_left = 110.0
-offset_top = 1056.0
-offset_right = 610.0
-offset_bottom = 1186.0
-texture_normal = ExtResource("2_run")
+offset_left = 270.0
+offset_top = 990.0
+offset_right = 450.0
+offset_bottom = 1170.0
+texture_normal = ExtResource("4_play")
 ignore_texture_size = true
 stretch_mode = 0
 
-[node name="LevelsBg" type="TextureRect" parent="UI"]
-mouse_filter = 2
-offset_left = 160.0
-offset_top = 1202.0
-offset_right = 560.0
-offset_bottom = 1262.0
-texture = ExtResource("3_shard")
-stretch_mode = 1
+[node name="LevelsButton" type="TextureButton" parent="UI"]
+offset_left = 310.0
+offset_top = 1175.0
+offset_right = 410.0
+offset_bottom = 1275.0
+texture_normal = ExtResource("5_levels")
+ignore_texture_size = true
+stretch_mode = 0
 
-[node name="LevelsButton" type="Button" parent="UI"]
-offset_left = 160.0
-offset_top = 1202.0
-offset_right = 560.0
-offset_bottom = 1262.0
-text = "LEVELS"
-theme_override_font_sizes/font_size = 30
+[node name="SettingsButton" type="TextureButton" parent="UI"]
+offset_left = 634.0
+offset_top = 76.0
+offset_right = 704.0
+offset_bottom = 146.0
+texture_normal = ExtResource("6_settings")
+ignore_texture_size = true
+stretch_mode = 0

@@ -11,7 +11,6 @@ class_name RockHazard
 
 var _breaking := false
 
-# Fixed: added actual project path first
 const TEXTURE_PATHS := [
 	"res://scenes/hazards/Rock.png",
 	"res://assets/art/level1/falling_rock.png",
@@ -21,22 +20,44 @@ const TEXTURE_PATHS := [
 
 var horizontal_drift: float = 0.0
 
+# Near-miss — fires once when the rock crosses the player's Y level
+const NEAR_MISS_RADIUS := 80.0
+var _near_miss_fired := false
+
 func _ready() -> void:
 	add_to_group("hazard")
 	_setup_visual()
-	# Fixed: scale range reduced to fit 256px rock on a 720px screen
 	scale = Vector2.ONE * randf_range(0.35, 0.55)
 	rotation = randf_range(-0.4, 0.4)
 	spin_speed = randf_range(-2.3, 2.3)
 	horizontal_drift = randf_range(-38.0, 38.0)
-	# Fixed: removed radius override — scale on root already adjusts collision proportionally
 
 func _process(delta: float) -> void:
 	position.y += speed * delta
 	position.x += horizontal_drift * delta
 	rotation += spin_speed * delta
+
+	_check_near_miss()
+
 	if position.y > get_viewport_rect().size.y + 180.0:
 		queue_free()
+
+func _check_near_miss() -> void:
+	if _near_miss_fired or _breaking:
+		return
+	var players := get_tree().get_nodes_in_group("player")
+	if players.is_empty():
+		return
+	var pl: Node2D = players[0]
+	# Trigger once when rock passes the player's Y (moving downward past them)
+	if position.y < pl.position.y:
+		return
+	_near_miss_fired = true
+	var dist := absf(position.x - pl.position.x)
+	if dist < NEAR_MISS_RADIUS:
+		var game := get_tree().get_first_node_in_group("game")
+		if game and game.has_method("on_near_miss"):
+			game.on_near_miss(pl.global_position)
 
 func break_apart() -> void:
 	if _breaking:
@@ -50,16 +71,26 @@ func break_apart() -> void:
 	tween.tween_property(self, "modulate", Color(1, 1, 1, 0), 0.28).set_delay(0.06)
 	tween.chain().tween_callback(queue_free)
 
+func flash_hit() -> void:
+	var tween := create_tween()
+	tween.tween_property(self, "modulate", Color(1.0, 0.3, 0.1, 1.0), 0.05)
+	tween.tween_property(self, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.18)
+
 func _setup_visual() -> void:
 	for texture_path in TEXTURE_PATHS:
 		if ResourceLoader.exists(texture_path):
 			art.texture = load(texture_path)
 			art.visible = true
 			fallback.visible = false
+			# Apply outline shader so rocks pop against dark backgrounds
+			var mat := ShaderMaterial.new()
+			mat.shader = load("res://shaders/hazard_outline.gdshader")
+			art.material = mat
 			return
+	# Fallback polygon — use a bright contrasting colour
 	art.visible = false
 	fallback.visible = true
-	fallback.color = Color("5c4a39")
+	fallback.color = Color("ff9922")   # orange — readable against any background
 	fallback.polygon = PackedVector2Array([
 		Vector2(-22, -18),
 		Vector2(8, -26),
