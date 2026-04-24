@@ -3,14 +3,6 @@ class_name MourkShard
 
 enum ShardColor { BLUE, GREEN, YELLOW, ORANGE, PURPLE, RED }
 
-# Preload forces the editor to import each texture at parse time
-const TEX_BLUE   := preload("res://scenes/pickups/shard blue.png")
-const TEX_GREEN  := preload("res://scenes/pickups/shard green.png")
-const TEX_YELLOW := preload("res://scenes/pickups/shard yellow.png")
-const TEX_ORANGE := preload("res://scenes/pickups/shard orange.png")
-const TEX_PURPLE := preload("res://scenes/pickups/shard purple.png")
-const TEX_RED    := preload("res://scenes/pickups/shard red.png")
-
 const SHARD_DATA := {
 	ShardColor.BLUE:   { "points": 8,  "tint": Color(0.30, 0.65, 1.00, 1.0) },
 	ShardColor.GREEN:  { "points": 12, "tint": Color(0.25, 1.00, 0.45, 1.0) },
@@ -19,6 +11,9 @@ const SHARD_DATA := {
 	ShardColor.PURPLE: { "points": 45, "tint": Color(0.72, 0.28, 1.00, 1.0) },
 	ShardColor.RED:    { "points": 60, "tint": Color(1.00, 0.18, 0.18, 1.0) },
 }
+
+# Set in the scene inspector — order matches ShardColor enum (BLUE=0 … RED=5)
+@export var shard_textures: Array[Texture2D] = []
 
 @export var speed: float = 320.0
 @export var spin_speed: float = 2.2
@@ -39,33 +34,23 @@ func _ready() -> void:
 	rotation = randf_range(-0.25, 0.25)
 	art.scale = Vector2(0.07, 0.07)
 
-# Call before add_child so _ready() picks up the colour automatically.
-# Can also be called after add_child to change colour at runtime.
+# Call before add_child so _ready() picks up the colour.
 func set_color(color: ShardColor) -> void:
 	shard_color = color
 	points = SHARD_DATA[color]["points"]
 	if is_inside_tree():
 		_apply_color()
 
-func _get_texture(color: ShardColor) -> Texture2D:
-	match color:
-		ShardColor.BLUE:   return TEX_BLUE
-		ShardColor.GREEN:  return TEX_GREEN
-		ShardColor.YELLOW: return TEX_YELLOW
-		ShardColor.ORANGE: return TEX_ORANGE
-		ShardColor.PURPLE: return TEX_PURPLE
-		ShardColor.RED:    return TEX_RED
-	return TEX_BLUE
-
 func _apply_color() -> void:
-	var tex := _get_texture(shard_color)
+	var idx := int(shard_color)
+	var tex: Texture2D = shard_textures[idx] if idx < shard_textures.size() else null
 	if tex != null:
 		art.texture = tex
 		art.modulate = Color(1, 1, 1, 1)
 		art.visible = true
 		fallback.visible = false
 	else:
-		# Coloured diamond fallback if texture somehow unavailable
+		# Coloured diamond fallback if texture slot is empty
 		art.visible = false
 		fallback.visible = true
 		fallback.color = SHARD_DATA[shard_color]["tint"]

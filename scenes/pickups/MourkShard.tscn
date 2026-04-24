@@ -1,8 +1,13 @@
 [gd_scene format=3 uid="uid://mourk_shard"]
 
 [ext_resource type="Script" path="res://scripts/pickups/mourk_shard.gd" id="1_shardscp"]
-[ext_resource type="Texture2D" path="res://scenes/pickups/shard.png" id="2_shardtex"]
-[ext_resource type="AudioStream" path="res://assets/audio/shard_collect.mp3" id="3_sfx"]
+[ext_resource type="Texture2D" path="res://scenes/pickups/shard blue.png" id="2_blue"]
+[ext_resource type="Texture2D" path="res://scenes/pickups/shard green.png" id="3_green"]
+[ext_resource type="Texture2D" path="res://scenes/pickups/shard yellow.png" id="4_yellow"]
+[ext_resource type="Texture2D" path="res://scenes/pickups/shard orange.png" id="5_orange"]
+[ext_resource type="Texture2D" path="res://scenes/pickups/shard purple.png" id="6_purple"]
+[ext_resource type="Texture2D" path="res://scenes/pickups/shard red.png" id="7_red"]
+[ext_resource type="AudioStream" path="res://assets/audio/shard_collect.mp3" id="8_sfx"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1"]
 radius = 40.0
@@ -13,12 +18,12 @@ collision_mask = 1
 monitoring = false
 monitorable = true
 script = ExtResource("1_shardscp")
+shard_textures = [ExtResource("2_blue"), ExtResource("3_green"), ExtResource("4_yellow"), ExtResource("5_orange"), ExtResource("6_purple"), ExtResource("7_red")]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_1")
 
 [node name="Art" type="Sprite2D" parent="."]
-texture = ExtResource("2_shardtex")
 
 [node name="Fallback" type="Polygon2D" parent="."]
 visible = false
@@ -26,5 +31,5 @@ color = Color(0.286, 0.949, 0.937, 1)
 polygon = PackedVector2Array(0, -22, 16, 0, 0, 24, -16, 0)
 
 [node name="CollectSound" type="AudioStreamPlayer2D" parent="."]
-stream = ExtResource("3_sfx")
+stream = ExtResource("8_sfx")
 volume_db = 2.0
