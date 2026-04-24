@@ -4,20 +4,13 @@ class_name MourkShard
 enum ShardColor { BLUE, GREEN, YELLOW, ORANGE, PURPLE, RED }
 
 const SHARD_DATA := {
-	ShardColor.BLUE:   { "points": 8,  "tint": Color(0.55, 0.85, 1.00, 1.0) },
-	ShardColor.GREEN:  { "points": 12, "tint": Color(0.40, 1.00, 0.55, 1.0) },
-	ShardColor.YELLOW: { "points": 20, "tint": Color(1.00, 0.95, 0.30, 1.0) },
-	ShardColor.ORANGE: { "points": 30, "tint": Color(1.00, 0.60, 0.15, 1.0) },
-	ShardColor.PURPLE: { "points": 45, "tint": Color(0.80, 0.35, 1.00, 1.0) },
-	ShardColor.RED:    { "points": 60, "tint": Color(1.00, 0.25, 0.25, 1.0) },
+	ShardColor.BLUE:   { "points": 8,  "tint": Color(0.55, 0.85, 1.00, 1.0), "texture": "res://scenes/pickups/shard blue.png" },
+	ShardColor.GREEN:  { "points": 12, "tint": Color(0.40, 1.00, 0.55, 1.0), "texture": "res://scenes/pickups/shard green.png" },
+	ShardColor.YELLOW: { "points": 20, "tint": Color(1.00, 0.95, 0.30, 1.0), "texture": "res://scenes/pickups/shard yellow.png" },
+	ShardColor.ORANGE: { "points": 30, "tint": Color(1.00, 0.60, 0.15, 1.0), "texture": "res://scenes/pickups/shard orange.png" },
+	ShardColor.PURPLE: { "points": 45, "tint": Color(0.80, 0.35, 1.00, 1.0), "texture": "res://scenes/pickups/shard purple.png" },
+	ShardColor.RED:    { "points": 60, "tint": Color(1.00, 0.25, 0.25, 1.0), "texture": "res://scenes/pickups/shard red.png" },
 }
-
-const TEXTURE_PATHS := [
-	"res://scenes/pickups/shard.png",
-	"res://assets/art/level1/mourk_shard.png",
-	"res://assets/art/level1/shard.png",
-	"res://assets/art/collectibles/mourk_shard.png",
-]
 
 @export var speed: float = 320.0
 @export var spin_speed: float = 2.2
@@ -35,16 +28,46 @@ func _ready() -> void:
 	add_to_group("mourk")
 	points = SHARD_DATA[shard_color]["points"]
 	_setup_visual()
-	art.modulate = SHARD_DATA[shard_color]["tint"]
 	rotation = randf_range(-0.25, 0.25)
 	art.scale = Vector2(0.07, 0.07)
 
-# Call before add_child — _ready() will pick up the colour automatically.
 func set_color(color: ShardColor) -> void:
 	shard_color = color
 	points = SHARD_DATA[color]["points"]
 	if is_inside_tree():
-		art.modulate = SHARD_DATA[color]["tint"]
+		_setup_visual()
+
+func _setup_visual() -> void:
+	var data: Dictionary = SHARD_DATA[shard_color]
+	# Try to load the colour-specific artwork first
+	var tex: Texture2D = load(data["texture"]) if ResourceLoader.exists(data["texture"]) else null
+	if tex != null:
+		art.texture = tex
+		art.modulate = Color(1, 1, 1, 1)
+		art.visible = true
+		fallback.visible = false
+		return
+	# Fallback: tint the base shard.png to the right colour
+	var base_paths := [
+		"res://scenes/pickups/shard.png",
+		"res://assets/art/level1/mourk_shard.png",
+		"res://assets/art/level1/shard.png",
+	]
+	for path in base_paths:
+		if ResourceLoader.exists(path):
+			art.texture = load(path)
+			art.modulate = data["tint"]
+			art.visible = true
+			fallback.visible = false
+			return
+	# Last resort: coloured polygon
+	art.visible = false
+	fallback.visible = true
+	fallback.color = data["tint"]
+	fallback.polygon = PackedVector2Array([
+		Vector2(0, -22), Vector2(16, 0),
+		Vector2(0, 24),  Vector2(-16, 0)
+	])
 
 func _process(delta: float) -> void:
 	if _collecting:
@@ -65,20 +88,3 @@ func collect() -> void:
 	tween.tween_property(art, "scale", Vector2(0.13, 0.13), 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(self, "modulate", Color(1, 1, 1, 0), 0.22).set_delay(0.08)
 	tween.chain().tween_callback(queue_free)
-
-func _setup_visual() -> void:
-	for texture_path in TEXTURE_PATHS:
-		if ResourceLoader.exists(texture_path):
-			art.texture = load(texture_path)
-			art.visible = true
-			fallback.visible = false
-			return
-	art.visible = false
-	fallback.visible = true
-	fallback.color = SHARD_DATA[shard_color]["tint"]
-	fallback.polygon = PackedVector2Array([
-		Vector2(0, -22),
-		Vector2(16, 0),
-		Vector2(0, 24),
-		Vector2(-16, 0)
-	])
