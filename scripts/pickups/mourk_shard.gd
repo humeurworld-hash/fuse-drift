@@ -29,7 +29,7 @@ func _ready() -> void:
 	points = SHARD_DATA[shard_color]["points"]
 	_setup_visual()
 	rotation = randf_range(-0.25, 0.25)
-	art.scale = Vector2(0.07, 0.07)
+	art.scale = Vector2(0.12, 0.12)
 
 func set_color(color: ShardColor) -> void:
 	shard_color = color
@@ -85,6 +85,6 @@ func collect() -> void:
 	collect_sound.play()
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(art, "scale", Vector2(0.13, 0.13), 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(art, "scale", Vector2(0.18, 0.18), 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(self, "modulate", Color(1, 1, 1, 0), 0.22).set_delay(0.08)
 	tween.chain().tween_callback(queue_free)
