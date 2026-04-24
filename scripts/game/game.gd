@@ -40,8 +40,10 @@ const LEVEL_3_BG_TEXTURE_PATHS := [
 @onready var health_label: Label = $UI/HealthLabel
 @onready var pause_button: TextureButton = $UI/PauseButton
 @onready var wave_banner: Label = $UI/WaveBanner
-@onready var dash_button: Button = $UI/DashButton
-@onready var pulse_button: Button = $UI/PulseButton
+@onready var dash_button: TextureButton = $UI/DashButton
+@onready var dash_label: Label = $UI/DashButton/DashLabel
+@onready var pulse_button: TextureButton = $UI/PulseButton
+@onready var pulse_label: Label = $UI/PulseButton/PulseLabel
 @onready var streak_mult_label: Label = $UI/StreakMultLabel
 @onready var streak_sub_label: Label = $UI/StreakSubLabel
 
@@ -129,14 +131,7 @@ func _apply_ui_theme() -> void:
 	_style_button(pause_menu_button,
 		Color(0.08, 0.12, 0.20, 1.0), Color(0.13, 0.20, 0.32, 1.0),
 		Color(0.28, 0.48, 0.66, 0.9))
-	# Dash — cyan accent
-	_style_button(dash_button,
-		Color(0.06, 0.20, 0.38, 1.0), Color(0.10, 0.30, 0.54, 1.0),
-		Color(0.22, 0.84, 1.00, 1.0))
-	# Pulse — gold accent
-	_style_button(pulse_button,
-		Color(0.30, 0.22, 0.03, 1.0), Color(0.46, 0.34, 0.05, 1.0),
-		Color(1.00, 0.82, 0.18, 1.0))
+	# Dash and Pulse use artwork textures — no style override needed
 
 func _style_panel(panel: Panel, bg: Color, border: Color, bw: int) -> void:
 	var s := StyleBoxFlat.new()
@@ -507,26 +502,25 @@ func _update_ability_buttons() -> void:
 	# ── Dash button ──────────────────────────────────────────────────────────
 	var dc := player.get_dash_cooldown()
 	if dc > 0.0:
-		dash_button.text = "DASH\n%.1fs" % dc
+		dash_label.text = "%.1fs" % dc
 		dash_button.disabled = true
-		dash_button.modulate = Color(0.55, 0.55, 0.55, 1.0)
+		dash_button.modulate = Color(0.50, 0.50, 0.50, 0.75)
+		dash_label.modulate = Color(1.0, 1.0, 1.0, 1.0)
 	else:
-		dash_button.text = "GHOST\nDASH"
+		dash_label.text = ""
 		dash_button.disabled = false
 		dash_button.modulate = Color(1.0, 1.0, 1.0, 1.0)
 
 	# ── Pulse button ─────────────────────────────────────────────────────────
 	var mc := player.get_magnet_cooldown()
 	if mc > 0.0:
-		pulse_button.text = "PULSE\n%.1fs" % mc
+		pulse_label.text = "%.1fs" % mc
 		pulse_button.disabled = true
-		pulse_button.modulate = Color(0.55, 0.55, 0.55, 1.0)
+		pulse_button.modulate = Color(0.50, 0.50, 0.50, 0.75)
+		pulse_label.modulate = Color(1.0, 1.0, 1.0, 1.0)
 	else:
 		var mult := _get_shard_multiplier()
-		if shard_streak > 0:
-			pulse_button.text = "SHARD\nPULSE  ×%d↓" % mult
-		else:
-			pulse_button.text = "SHARD\nPULSE"
+		pulse_label.text = "×%d" % mult if shard_streak > 0 else ""
 		pulse_button.disabled = false
 		pulse_button.modulate = Color(1.0, 1.0, 1.0, 1.0)
 
