@@ -263,7 +263,8 @@ func _check_overlaps() -> void:
 			return
 		elif area.is_in_group("mourk"):
 			if is_instance_valid(area) and area.has_method("collect"):
-				mourk_collected.emit(5, area.global_position)
+				var pts: int = area.get("points") if area.get("points") != null else 12
+				mourk_collected.emit(pts, area.global_position)
 				area.collect()
 
 # ── Rewind ────────────────────────────────────────────────────────────────────

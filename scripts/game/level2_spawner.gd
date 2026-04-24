@@ -132,11 +132,21 @@ func _spawn_drone(cfg: Dictionary) -> void:
 	drone.position = Vector2(randf_range(side_padding, width - side_padding), -140.0)
 	hazards_root.add_child(drone)
 
+# Level 2 starts mid-tier — greens and yellows, escalating to purples
+const WAVE_SHARD_COLORS := [
+	[MourkShard.ShardColor.GREEN,  MourkShard.ShardColor.YELLOW],      # wave 1
+	[MourkShard.ShardColor.YELLOW, MourkShard.ShardColor.ORANGE],      # wave 2
+	[MourkShard.ShardColor.ORANGE, MourkShard.ShardColor.PURPLE],      # wave 3
+	[MourkShard.ShardColor.PURPLE],                                     # wave 4
+]
+
 func _spawn_shard(cfg: Dictionary) -> void:
 	if shard_scene == null:
 		return
 	var width := get_viewport().get_visible_rect().size.x
 	var shard: MourkShard = shard_scene.instantiate()
+	var palette: Array = WAVE_SHARD_COLORS[wave_index]
+	shard.set_color(palette[randi() % palette.size()])
 	shard.position = Vector2(randf_range(side_padding, width - side_padding), -96.0)
 	shard.speed = maxf(220.0, float(cfg["speed"]) - 120.0)
 	pickups_root.add_child(shard)

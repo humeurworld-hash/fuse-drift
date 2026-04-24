@@ -132,11 +132,21 @@ func _spawn_clock(cfg: Dictionary) -> void:
 	clock.position = Vector2(randf_range(side_padding, width - side_padding), -150.0)
 	hazards_root.add_child(clock)
 
+# Level 3 is high-end — orange through red, pure red in the final wave
+const WAVE_SHARD_COLORS := [
+	[MourkShard.ShardColor.YELLOW, MourkShard.ShardColor.ORANGE],      # wave 1
+	[MourkShard.ShardColor.ORANGE, MourkShard.ShardColor.PURPLE],      # wave 2
+	[MourkShard.ShardColor.PURPLE, MourkShard.ShardColor.RED],         # wave 3
+	[MourkShard.ShardColor.RED],                                        # wave 4
+]
+
 func _spawn_shard(cfg: Dictionary) -> void:
 	if shard_scene == null:
 		return
 	var width := get_viewport().get_visible_rect().size.x
 	var shard: MourkShard = shard_scene.instantiate()
+	var palette: Array = WAVE_SHARD_COLORS[wave_index]
+	shard.set_color(palette[randi() % palette.size()])
 	shard.position = Vector2(randf_range(side_padding, width - side_padding), -96.0)
 	shard.speed = maxf(200.0, float(cfg["speed"]) - 140.0)
 	pickups_root.add_child(shard)

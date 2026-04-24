@@ -536,19 +536,35 @@ func _get_shard_multiplier() -> int:
 			return STREAK_MULTIPLIERS[i]
 	return 1
 
-func _on_mourk_collected(_base_points: int, world_pos: Vector2) -> void:
+func _on_mourk_collected(base_points: int, world_pos: Vector2) -> void:
 	if state != GameState.PLAYING:
 		return
 	shard_streak += 1
 	var mult := _get_shard_multiplier()
-	var pts := BASE_SHARD_PTS * mult
+	var pts := base_points * mult
 	score += pts
 	update_hud()
 	_animate_streak_collect()
 	var label_text := "+%d" % pts
 	if mult > 1:
 		label_text += "  ×%d" % mult
-	_spawn_float_text(label_text, world_pos, _streak_font_size(mult), _streak_color(mult))
+	# Tint float text to match the shard colour
+	var text_color := _shard_color_for_points(base_points).lerp(_streak_color(mult), 0.45)
+	_spawn_float_text(label_text, world_pos, _streak_font_size(mult), text_color)
+
+func _shard_color_for_points(pts: int) -> Color:
+	if pts >= 60:
+		return Color(1.00, 0.18, 0.18, 1.0)   # red
+	elif pts >= 45:
+		return Color(0.72, 0.28, 1.00, 1.0)   # purple
+	elif pts >= 30:
+		return Color(1.00, 0.55, 0.10, 1.0)   # orange
+	elif pts >= 20:
+		return Color(1.00, 0.92, 0.20, 1.0)   # yellow
+	elif pts >= 12:
+		return Color(0.25, 1.00, 0.45, 1.0)   # green
+	else:
+		return Color(0.30, 0.65, 1.00, 1.0)   # blue
 
 # ── Streak display ────────────────────────────────────────────────────────────
 
