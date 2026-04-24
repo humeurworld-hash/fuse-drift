@@ -71,11 +71,44 @@ func break_apart() -> void:
 	_breaking = true
 	collision_shape.set_deferred("disabled", true)
 	break_sound.play()
+	_burst_particles()
 	var tween := create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(self, "scale", scale * 1.5, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(self, "modulate", Color(1, 1, 1, 0), 0.28).set_delay(0.06)
 	tween.chain().tween_callback(queue_free)
+
+func _burst_particles() -> void:
+	var ps := GPUParticles2D.new()
+	var mat := ParticleProcessMaterial.new()
+
+	mat.direction = Vector3(0, -1, 0)
+	mat.spread = 180.0
+	mat.initial_velocity_min = 120.0
+	mat.initial_velocity_max = 340.0
+	mat.gravity = Vector3(0, 420, 0)
+	mat.scale_min = 4.0
+	mat.scale_max = 10.0
+	mat.color = Color(0.62, 0.50, 0.36, 1.0)   # sandy rock colour
+
+	var gradient := Gradient.new()
+	gradient.set_color(0, Color(0.75, 0.62, 0.44, 1.0))
+	gradient.set_color(1, Color(0.40, 0.30, 0.20, 0.0))
+	var grad_tex := GradientTexture1D.new()
+	grad_tex.gradient = gradient
+	mat.color_ramp = grad_tex
+
+	ps.process_material = mat
+	ps.amount = 22
+	ps.lifetime = 0.55
+	ps.explosiveness = 0.92
+	ps.one_shot = true
+	ps.emitting = true
+	ps.z_index = 20
+
+	get_parent().add_child(ps)
+	ps.global_position = global_position
+	get_tree().create_timer(0.7).timeout.connect(ps.queue_free)
 
 func flash_hit() -> void:
 	var tween := create_tween()

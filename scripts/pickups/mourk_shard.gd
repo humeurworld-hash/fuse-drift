@@ -39,7 +39,6 @@ func set_color(color: ShardColor) -> void:
 
 func _setup_visual() -> void:
 	var data: Dictionary = SHARD_DATA[shard_color]
-	# Try to load the colour-specific artwork first
 	var tex: Texture2D = load(data["texture"]) if ResourceLoader.exists(data["texture"]) else null
 	if tex != null:
 		art.texture = tex
@@ -47,7 +46,6 @@ func _setup_visual() -> void:
 		art.visible = true
 		fallback.visible = false
 		return
-	# Fallback: tint the base shard.png to the right colour
 	var base_paths := [
 		"res://scenes/pickups/shard.png",
 		"res://assets/art/level1/mourk_shard.png",
@@ -60,7 +58,6 @@ func _setup_visual() -> void:
 			art.visible = true
 			fallback.visible = false
 			return
-	# Last resort: coloured polygon
 	art.visible = false
 	fallback.visible = true
 	fallback.color = data["tint"]
@@ -83,8 +80,47 @@ func collect() -> void:
 	_collecting = true
 	collision_shape.set_deferred("disabled", true)
 	collect_sound.play()
+	_burst_particles()
 	var tween := create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(art, "scale", Vector2(0.21, 0.21), 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(self, "modulate", Color(1, 1, 1, 0), 0.22).set_delay(0.08)
 	tween.chain().tween_callback(queue_free)
+
+func _burst_particles() -> void:
+	var color := SHARD_DATA[shard_color]["tint"] as Color
+	var ps := GPUParticles2D.new()
+	var mat := ParticleProcessMaterial.new()
+
+	# Spread in all directions, short burst
+	mat.direction = Vector3(0, -1, 0)
+	mat.spread = 180.0
+	mat.initial_velocity_min = 80.0
+	mat.initial_velocity_max = 220.0
+	mat.gravity = Vector3(0, 280, 0)
+	mat.scale_min = 3.0
+	mat.scale_max = 7.0
+	mat.color = color
+
+	# Fade out over lifetime
+	var gradient := Gradient.new()
+	gradient.set_color(0, Color(color.r, color.g, color.b, 1.0))
+	gradient.set_color(1, Color(color.r, color.g, color.b, 0.0))
+	var grad_tex := GradientTexture1D.new()
+	grad_tex.gradient = gradient
+	mat.color_ramp = grad_tex
+
+	ps.process_material = mat
+	ps.amount = 18
+	ps.lifetime = 0.45
+	ps.explosiveness = 0.95   # fire all at once
+	ps.one_shot = true
+	ps.emitting = true
+	ps.z_index = 20
+
+	# Detach from shard so particles outlive it
+	get_parent().add_child(ps)
+	ps.global_position = global_position
+
+	# Auto-remove after particles finish
+	get_tree().create_timer(0.6).timeout.connect(ps.queue_free)
