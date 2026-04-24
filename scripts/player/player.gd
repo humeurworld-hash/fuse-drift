@@ -40,14 +40,14 @@ var _rewind_timer: float = 0.0
 const REWIND_SLUGGISH_DURATION := 1.6
 
 # ── Ghost Dash ────────────────────────────────────────────────────────────────
-const DASH_DURATION    := 0.45   # seconds of invincibility / ghost look
-const DASH_COOLDOWN    := 3.5    # seconds before dash is ready again
+const DASH_DURATION    := 2.5    # seconds of invincibility / ghost look
+const DASH_COOLDOWN    := 6.0    # seconds before dash is ready again
 var _dash_cooldown: float = 0.0
 var _dashing: bool = false
 
 # ── Shard Magnet Pulse ────────────────────────────────────────────────────────
-const MAGNET_DURATION  := 1.8    # seconds the pull lasts
-const MAGNET_COOLDOWN  := 5.0    # seconds before pulse is ready again
+const MAGNET_DURATION  := 3.0    # seconds the pull lasts
+const MAGNET_COOLDOWN  := 7.0    # seconds before pulse is ready again
 const MAGNET_RADIUS    := 220.0  # pull range in world pixels
 const MAGNET_PULL_NEAR := 660.0  # pull speed when shard is close (px/s)
 const MAGNET_PULL_FAR  := 240.0  # pull speed at edge of radius
@@ -170,9 +170,23 @@ func _pull_nearby_shards(delta: float) -> void:
 		var dist := to_player.length()
 		if dist <= 1.0 or dist > MAGNET_RADIUS:
 			continue
-		var t := 1.0 - (dist / MAGNET_RADIUS)        # 0 at edge, 1 when close
-		var speed := lerpf(MAGNET_PULL_FAR, MAGNET_PULL_NEAR, t)
-		area.global_position += to_player.normalized() * speed * delta
+		# Quadratic curve: gentle grab at edge, hard snap near player
+		var t  := 1.0 - (dist / MAGNET_RADIUS)   # 0 far, 1 close
+		var t2 := t * t
+		var speed := lerpf(MAGNET_PULL_FAR, MAGNET_PULL_NEAR * 2.0, t2)
+		# Swirl: perpendicular nudge creates satisfying spiral-in arc;
+		# strongest mid-range, vanishes as shard closes in
+		var swirl := to_player.normalized().rotated(PI * 0.5) \
+					 * speed * 0.45 * (1.0 - t2)
+		area.global_position += (to_player.normalized() * speed + swirl) * delta
+		# Spin up the shard as it's pulled — snappy visual feedback
+		if area.get("spin_speed") != null:
+			area.set("spin_speed", lerpf(2.2, 24.0, t2))
+		# Brighten + slight cyan tint as it accelerates toward player
+		area.modulate = Color(
+			1.0 + t2 * 0.5,
+			1.0 + t2 * 0.8,
+			1.0 + t2 * 0.4, 1.0)
 
 # ── History & animation ───────────────────────────────────────────────────────
 

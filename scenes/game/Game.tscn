@@ -325,18 +325,18 @@ theme_override_font_sizes/font_size = 28
 
 [node name="DashButton" type="Button" parent="UI"]
 visible = false
-offset_left = 16.0
-offset_top = 1150.0
-offset_right = 200.0
-offset_bottom = 1235.0
+offset_left = 8.0
+offset_top = 1140.0
+offset_right = 228.0
+offset_bottom = 1272.0
 text = "GHOST\nDASH"
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 18
 
 [node name="PulseButton" type="Button" parent="UI"]
 visible = false
-offset_left = 520.0
-offset_top = 1150.0
-offset_right = 704.0
-offset_bottom = 1235.0
+offset_left = 492.0
+offset_top = 1140.0
+offset_right = 712.0
+offset_bottom = 1272.0
 text = "SHARD\nPULSE"
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 18
