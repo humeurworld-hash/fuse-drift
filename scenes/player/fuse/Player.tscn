@@ -1,13 +1,13 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/player/player.gd" id="1_player"]
-[ext_resource type="Texture2D" path="res://scenes/player/fuse/Hover.png" id="2_hover"]
-[ext_resource type="Texture2D" path="res://scenes/player/fuse/Move left.png" id="3_left"]
-[ext_resource type="Texture2D" path="res://scenes/player/fuse/Move right.png" id="4_right"]
+[ext_resource type="Texture2D" path="res://scenes/player/fuse/New Fuse/idle.png" id="2_hover"]
+[ext_resource type="Texture2D" path="res://scenes/player/fuse/New Fuse/move left.png" id="3_left"]
+[ext_resource type="Texture2D" path="res://scenes/player/fuse/New Fuse/move right.png" id="4_right"]
 [ext_resource type="Texture2D" path="res://scenes/player/fuse/Damaged.png" id="5_damaged"]
-[ext_resource type="Texture2D" path="res://scenes/player/fuse/Glitch.png" id="6_glitch"]
-[ext_resource type="Texture2D" path="res://scenes/player/fuse/Stunned.png" id="7_stunned"]
-[ext_resource type="Texture2D" path="res://scenes/player/fuse/Worried.png" id="8_worried"]
+[ext_resource type="Texture2D" path="res://scenes/player/fuse/New Fuse/Glitched.png" id="6_glitch"]
+[ext_resource type="Texture2D" path="res://scenes/player/fuse/New Fuse/Stunned.png" id="7_stunned"]
+[ext_resource type="Texture2D" path="res://scenes/player/fuse/New Fuse/worried.png" id="8_worried"]
 
 [sub_resource type="SpriteFrames" id="SF_player"]
 animations = [{

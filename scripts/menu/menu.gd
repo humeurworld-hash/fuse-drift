@@ -16,8 +16,7 @@ const LEVEL_NAMES := {
 @onready var fallback_bg: ColorRect = $FallbackBG
 @onready var background_art: Sprite2D = $BackgroundArt
 @onready var best_score_label: Label = $UI/BestScoreLabel
-@onready var continue_bg: TextureRect = $UI/ContinueBg
-@onready var continue_button: Button = $UI/ContinueButton
+@onready var continue_button: TextureButton = $UI/ContinueButton
 @onready var continue_level_label: Label = $UI/ContinueLevelLabel
 @onready var run_button: TextureButton = $UI/RunButton
 @onready var levels_button: TextureButton = $UI/LevelsButton
@@ -66,13 +65,11 @@ func _setup_continue() -> void:
 
 	# Only show Continue if something beyond Level 1 is accessible
 	if highest_unlocked <= 1:
-		continue_bg.visible = false
 		continue_button.visible = false
 		continue_level_label.visible = false
 		return
 
 	_continue_level = highest_unlocked
-	continue_bg.visible = true
 	continue_button.visible = true
 	continue_level_label.visible = true
 	continue_level_label.text = LEVEL_NAMES.get(highest_unlocked, "")

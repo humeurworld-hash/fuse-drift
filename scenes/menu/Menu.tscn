@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scripts/menu/menu.gd" id="1_menu"]
 [ext_resource type="Texture2D" path="res://assets/ui/run_button.PNG" id="2_run"]
 [ext_resource type="Texture2D" path="res://assets/ui/shard_hub.PNG" id="3_shard"]
+[ext_resource type="Texture2D" path="res://scenes/menu/new continue.png" id="7_continue"]
 [ext_resource type="Texture2D" path="res://scenes/menu/Play Button.PNG" id="4_play"]
 [ext_resource type="Texture2D" path="res://scenes/menu/Level Seclet Button.PNG" id="5_levels"]
 [ext_resource type="Texture2D" path="res://scenes/menu/Settings button.PNG" id="6_settings"]
@@ -53,54 +54,41 @@ text = "BEST: —"
 theme_override_font_sizes/font_size = 22
 theme_override_colors/font_color = Color(0.3, 1.0, 0.95, 1.0)
 
-[node name="ContinueBg" type="TextureRect" parent="UI"]
+[node name="ContinueButton" type="TextureButton" parent="UI"]
 visible = false
-mouse_filter = 2
-offset_left = 90.0
-offset_top = 862.0
-offset_right = 630.0
-offset_bottom = 1000.0
-texture = ExtResource("3_shard")
-stretch_mode = 1
-
-[node name="ContinueButton" type="Button" parent="UI"]
-visible = false
-offset_left = 90.0
-offset_top = 862.0
-offset_right = 630.0
-offset_bottom = 1000.0
-text = "▶  CONTINUE"
-theme_override_font_sizes/font_size = 34
-theme_override_colors/font_color = Color(0.15, 0.95, 0.9, 1.0)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
+offset_left = 140.0
+offset_top = 770.0
+offset_right = 580.0
+offset_bottom = 990.0
+texture_normal = ExtResource("7_continue")
+ignore_texture_size = true
+stretch_mode = 0
 
 [node name="ContinueLevelLabel" type="Label" parent="UI"]
 visible = false
 offset_left = 90.0
-offset_top = 1006.0
+offset_top = 994.0
 offset_right = 630.0
-offset_bottom = 1038.0
+offset_bottom = 1022.0
 horizontal_alignment = 1
 text = "Level 2 — The Canvas"
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
 theme_override_colors/font_color = Color(0.75, 0.75, 0.75, 0.9)
 
 [node name="RunButton" type="TextureButton" parent="UI"]
 offset_left = 270.0
-offset_top = 990.0
+offset_top = 1032.0
 offset_right = 450.0
-offset_bottom = 1170.0
+offset_bottom = 1192.0
 texture_normal = ExtResource("4_play")
 ignore_texture_size = true
 stretch_mode = 0
 
 [node name="LevelsButton" type="TextureButton" parent="UI"]
-offset_left = 310.0
-offset_top = 1175.0
-offset_right = 410.0
-offset_bottom = 1275.0
+offset_left = 315.0
+offset_top = 1198.0
+offset_right = 405.0
+offset_bottom = 1278.0
 texture_normal = ExtResource("5_levels")
 ignore_texture_size = true
 stretch_mode = 0
