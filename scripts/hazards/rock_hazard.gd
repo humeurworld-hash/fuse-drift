@@ -38,7 +38,7 @@ func _ready() -> void:
 	spin_speed = randf_range(-2.3, 2.3)
 	horizontal_drift = randf_range(-38.0, 38.0)
 	# Pick randomly between the two fall sounds for variety
-	var path := FALL_SOUNDS[randi() % FALL_SOUNDS.size()]
+	var path: String = FALL_SOUNDS[randi() % FALL_SOUNDS.size()]
 	if ResourceLoader.exists(path):
 		fall_sound.stream = load(path)
 		fall_sound.pitch_scale = randf_range(0.88, 1.12)
