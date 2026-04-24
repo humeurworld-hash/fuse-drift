@@ -28,10 +28,19 @@ func _ready() -> void:
 	_setup_background()
 	_load_scores()
 	_setup_continue()
+	_clear_btn_bg(continue_button)
+	_clear_btn_bg(run_button)
+	_clear_btn_bg(levels_button)
+	_clear_btn_bg(settings_button)
 	continue_button.pressed.connect(_on_continue)
 	run_button.pressed.connect(_on_run)
 	levels_button.pressed.connect(_on_levels)
 	settings_button.pressed.connect(_on_settings)
+
+func _clear_btn_bg(btn: TextureButton) -> void:
+	var empty := StyleBoxEmpty.new()
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		btn.add_theme_stylebox_override(state, empty)
 
 func _setup_background() -> void:
 	var vp := get_viewport_rect().size
