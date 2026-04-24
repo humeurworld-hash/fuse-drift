@@ -3,7 +3,8 @@
 [ext_resource type="Script" path="res://scripts/hazards/rock_hazard.gd" id="1_rockhaz"]
 [ext_resource type="Texture2D" path="res://scenes/hazards/Rock.png" id="2_rocktex"]
 [ext_resource type="AudioStream" path="res://assets/audio/rock_break.mp3" id="3_sfx"]
-[ext_resource type="AudioStream" path="res://assets/audio/rock fall 2.mp3" id="4_fall"]
+[ext_resource type="AudioStream" path="res://assets/audio/rock fall 1.mp3" id="4_fall1"]
+[ext_resource type="AudioStream" path="res://assets/audio/rock fall 2.mp3" id="5_fall2"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1"]
 radius = 80.0
@@ -31,6 +32,5 @@ stream = ExtResource("3_sfx")
 volume_db = 3.0
 
 [node name="FallSound" type="AudioStreamPlayer2D" parent="."]
-stream = ExtResource("4_fall")
 volume_db = -6.0
 max_distance = 800.0

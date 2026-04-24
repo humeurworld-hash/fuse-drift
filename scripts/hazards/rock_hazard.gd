@@ -10,6 +10,11 @@ class_name RockHazard
 @onready var break_sound: AudioStreamPlayer2D = $BreakSound
 @onready var fall_sound: AudioStreamPlayer2D = $FallSound
 
+const FALL_SOUNDS := [
+	"res://assets/audio/rock fall 1.mp3",
+	"res://assets/audio/rock fall 2.mp3",
+]
+
 var _breaking := false
 
 const TEXTURE_PATHS := [
@@ -32,9 +37,10 @@ func _ready() -> void:
 	rotation = randf_range(-0.4, 0.4)
 	spin_speed = randf_range(-2.3, 2.3)
 	horizontal_drift = randf_range(-38.0, 38.0)
-	# Play whoosh if a sound is wired up — drop res://assets/audio/rock_fall.mp3
-	# into the project and assign it to FallSound in the scene inspector.
-	if fall_sound.stream != null:
+	# Pick randomly between the two fall sounds for variety
+	var path := FALL_SOUNDS[randi() % FALL_SOUNDS.size()]
+	if ResourceLoader.exists(path):
+		fall_sound.stream = load(path)
 		fall_sound.pitch_scale = randf_range(0.88, 1.12)
 		fall_sound.play()
 
