@@ -8,6 +8,7 @@ class_name RockHazard
 @onready var fallback: Polygon2D = $Fallback
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var break_sound: AudioStreamPlayer2D = $BreakSound
+@onready var fall_sound: AudioStreamPlayer2D = $FallSound
 
 var _breaking := false
 
@@ -31,6 +32,11 @@ func _ready() -> void:
 	rotation = randf_range(-0.4, 0.4)
 	spin_speed = randf_range(-2.3, 2.3)
 	horizontal_drift = randf_range(-38.0, 38.0)
+	# Play whoosh if a sound is wired up — drop res://assets/audio/rock_fall.mp3
+	# into the project and assign it to FallSound in the scene inspector.
+	if fall_sound.stream != null:
+		fall_sound.pitch_scale = randf_range(0.88, 1.12)
+		fall_sound.play()
 
 func _process(delta: float) -> void:
 	position.y += speed * delta

@@ -90,9 +90,9 @@ ignore_texture_size = true
 stretch_mode = 0
 
 [node name="LevelsButton" type="TextureButton" parent="UI"]
-offset_left = 315.0
-offset_top = 1198.0
-offset_right = 405.0
+offset_left = 280.0
+offset_top = 1182.0
+offset_right = 440.0
 offset_bottom = 1278.0
 texture_normal = ExtResource("5_levels")
 ignore_texture_size = true
