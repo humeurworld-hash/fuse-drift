@@ -47,14 +47,17 @@ theme_override_font_sizes/font_size = 26
 theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 0.85)
 
 [node name="BestScoreLabel" type="Label" parent="UI"]
-offset_left = 0.0
-offset_top = 196.0
-offset_right = 720.0
-offset_bottom = 232.0
-horizontal_alignment = 1
+offset_left = 480.0
+offset_top = 36.0
+offset_right = 710.0
+offset_bottom = 72.0
+horizontal_alignment = 2
 text = "BEST: —"
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 20
 theme_override_colors/font_color = Color(0.3, 1.0, 0.95, 1.0)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 2
 
 [node name="ContinueButton" type="TextureButton" parent="UI"]
 visible = false

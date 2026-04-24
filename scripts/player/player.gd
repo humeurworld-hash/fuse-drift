@@ -185,17 +185,29 @@ func _record_history(delta: float) -> void:
 			_pos_history.remove_at(0)
 
 func _update_animation() -> void:
-	# Don't fight the glitch anim during rewind or dash
+	# Don't fight the glitch anim during rewind
 	if _rewinding:
 		return
-	var dx := target_x - position.x
 	var new_anim: StringName
-	if dx < -10.0:
-		new_anim = &"move_left"
-	elif dx > 10.0:
-		new_anim = &"move_right"
+	if dragging:
+		# While finger is held, lean based on where the finger IS relative to
+		# screen centre — the lean stays as long as you hold left/right.
+		var offset := target_x - screen_size.x * 0.5
+		if offset < -30.0:
+			new_anim = &"move_left"
+		elif offset > 30.0:
+			new_anim = &"move_right"
+		else:
+			new_anim = &"hover"
 	else:
-		new_anim = &"hover"
+		# Finger lifted — keep lean while still catching up, then settle to hover
+		var dx := target_x - position.x
+		if dx < -8.0:
+			new_anim = &"move_left"
+		elif dx > 8.0:
+			new_anim = &"move_right"
+		else:
+			new_anim = &"hover"
 	if new_anim != _current_anim:
 		_current_anim = new_anim
 		sprite.play(new_anim)

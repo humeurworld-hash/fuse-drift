@@ -62,6 +62,7 @@ script = ExtResource("1_player")
 shape = SubResource("CS_player")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+scale = Vector2(0.38, 0.38)
 sprite_frames = SubResource("SF_player")
 animation = &"hover"
 autoplay = "hover"
