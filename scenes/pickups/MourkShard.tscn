@@ -7,6 +7,7 @@
 [ext_resource type="Texture2D" path="res://scenes/pickups/shard orange.png" id="5_orange"]
 [ext_resource type="Texture2D" path="res://scenes/pickups/shard purple.png" id="6_purple"]
 [ext_resource type="Texture2D" path="res://scenes/pickups/shard red.png" id="7_red"]
+[ext_resource type="Texture2D" path="res://scenes/pickups/shard.png" id="9_base"]
 [ext_resource type="AudioStream" path="res://assets/audio/shard_collect.mp3" id="8_sfx"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1"]
@@ -24,6 +25,7 @@ shard_textures = [ExtResource("2_blue"), ExtResource("3_green"), ExtResource("4_
 shape = SubResource("CircleShape2D_1")
 
 [node name="Art" type="Sprite2D" parent="."]
+texture = ExtResource("9_base")
 
 [node name="Fallback" type="Polygon2D" parent="."]
 visible = false

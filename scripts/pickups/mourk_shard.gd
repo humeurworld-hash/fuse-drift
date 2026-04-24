@@ -45,19 +45,16 @@ func _apply_color() -> void:
 	var idx := int(shard_color)
 	var tex: Texture2D = shard_textures[idx] if idx < shard_textures.size() else null
 	if tex != null:
+		# Custom coloured artwork — show as-is
 		art.texture = tex
 		art.modulate = Color(1, 1, 1, 1)
 		art.visible = true
 		fallback.visible = false
 	else:
-		# Coloured diamond fallback if texture slot is empty
-		art.visible = false
-		fallback.visible = true
-		fallback.color = SHARD_DATA[shard_color]["tint"]
-		fallback.polygon = PackedVector2Array([
-			Vector2(0, -22), Vector2(16, 0),
-			Vector2(0, 24),  Vector2(-16, 0)
-		])
+		# Custom texture not imported yet — tint the base shard.png to the right colour
+		art.modulate = SHARD_DATA[shard_color]["tint"]
+		art.visible = true
+		fallback.visible = false
 
 func _process(delta: float) -> void:
 	if _collecting:
