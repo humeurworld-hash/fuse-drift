@@ -159,17 +159,17 @@ visible = false
 
 [node name="ScoreNumber" type="Node2D" parent="UI"]
 visible = false
-position = Vector2(530.0, 98.0)
+position = Vector2(14.0, 100.0)
 script = ExtResource("25_sprnum")
-digit_height = 36.0
+digit_height = 54.0
 max_digits = 5
 animate_on_change = true
 
 [node name="BestNumber" type="Node2D" parent="UI"]
 visible = false
-position = Vector2(530.0, 150.0)
+position = Vector2(14.0, 152.0)
 script = ExtResource("25_sprnum")
-digit_height = 26.0
+digit_height = 39.0
 max_digits = 5
 animate_on_change = false
 
