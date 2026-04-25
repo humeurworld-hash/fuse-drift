@@ -84,31 +84,32 @@ volume_db = -4.0
 mouse_filter = 2
 visible = false
 offset_left = 4.0
-offset_top = 76.0
-offset_right = 224.0
-offset_bottom = 144.0
+offset_top = 70.0
+offset_right = 232.0
+offset_bottom = 166.0
 expand_mode = 1
 texture = ExtResource("21_lifehub")
-stretch_mode = 0
+stretch_mode = 1
 
 [node name="ScoreHub" type="TextureRect" parent="UI"]
 mouse_filter = 2
 visible = false
-offset_left = 460.0
-offset_top = 76.0
-offset_right = 648.0
-offset_bottom = 144.0
+offset_left = 438.0
+offset_top = 70.0
+offset_right = 622.0
+offset_bottom = 166.0
 expand_mode = 1
 texture = ExtResource("20_shardhub")
-stretch_mode = 0
+stretch_mode = 1
 
 [node name="HealthLabel" type="Label" parent="UI"]
 mouse_filter = 2
 visible = false
-offset_left = 82.0
-offset_top = 86.0
-offset_right = 220.0
-offset_bottom = 134.0
+offset_left = 8.0
+offset_top = 76.0
+offset_right = 228.0
+offset_bottom = 120.0
+horizontal_alignment = 1
 text = "♥ ♥ ♥"
 theme_override_font_sizes/font_size = 18
 theme_override_colors/font_color = Color(1.0, 0.35, 0.25, 1.0)
@@ -116,10 +117,10 @@ theme_override_colors/font_color = Color(1.0, 0.35, 0.25, 1.0)
 [node name="ScoreLabel" type="Label" parent="UI"]
 mouse_filter = 2
 visible = false
-offset_left = 464.0
-offset_top = 86.0
-offset_right = 644.0
-offset_bottom = 134.0
+offset_left = 442.0
+offset_top = 76.0
+offset_right = 618.0
+offset_bottom = 120.0
 horizontal_alignment = 1
 text = "Score: 0"
 theme_override_font_sizes/font_size = 18
@@ -127,22 +128,22 @@ theme_override_font_sizes/font_size = 18
 [node name="WaveLabel" type="Label" parent="UI"]
 visible = false
 offset_left = 232.0
-offset_top = 86.0
-offset_right = 456.0
-offset_bottom = 130.0
+offset_top = 82.0
+offset_right = 438.0
+offset_bottom = 126.0
 horizontal_alignment = 1
 text = "Wave 1/4"
 theme_override_font_sizes/font_size = 18
 
 [node name="BestLabel" type="Label" parent="UI"]
 visible = false
-offset_left = 460.0
-offset_top = 144.0
-offset_right = 648.0
-offset_bottom = 172.0
-horizontal_alignment = 2
+offset_left = 442.0
+offset_top = 124.0
+offset_right = 618.0
+offset_bottom = 160.0
+horizontal_alignment = 1
 text = "Best: 0"
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 15
 theme_override_colors/font_color = Color(0.3, 1.0, 0.95, 0.9)
 
 [node name="PauseButton" type="TextureButton" parent="UI"]
