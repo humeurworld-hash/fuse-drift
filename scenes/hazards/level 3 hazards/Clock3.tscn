@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://clock3"]
 
 [ext_resource type="Script" path="res://scripts/hazards/clock_hazard.gd" id="1_clk"]
-[ext_resource type="Texture2D" path="res://scenes/hazards/level 3 hazards/clock3.PNG" id="2_tex"]
+[ext_resource type="Texture2D" path="res://scenes/hazards/level 3 hazards/new clock 3.png" id="2_tex"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1"]
 radius = 118.0
@@ -20,5 +20,5 @@ is_rewinder = true
 shape = SubResource("CircleShape2D_1")
 
 [node name="Body" type="Sprite2D" parent="."]
-scale = Vector2(0.24, 0.24)
+scale = Vector2(0.40, 0.40)
 texture = ExtResource("2_tex")

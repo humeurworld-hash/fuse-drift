@@ -134,12 +134,12 @@ func _spawn_clock(cfg: Dictionary) -> void:
 	hazards_root.add_child(clock)
 	clock.speed_mult = hazard_speed_mult
 
-# Level 3 is high-end — orange through red, pure red in the final wave
+# Level 3 is high-end — orange into purple and gold, pure gold in final wave
 const WAVE_SHARD_COLORS := [
-	[MourkShard.ShardColor.YELLOW, MourkShard.ShardColor.ORANGE],      # wave 1
-	[MourkShard.ShardColor.ORANGE, MourkShard.ShardColor.PURPLE],      # wave 2
-	[MourkShard.ShardColor.PURPLE, MourkShard.ShardColor.RED],         # wave 3
-	[MourkShard.ShardColor.RED],                                        # wave 4
+	[MourkShard.ShardColor.ORANGE, MourkShard.ShardColor.PURPLE],      # wave 1
+	[MourkShard.ShardColor.PURPLE, MourkShard.ShardColor.GOLD],        # wave 2
+	[MourkShard.ShardColor.PURPLE, MourkShard.ShardColor.GOLD],        # wave 3
+	[MourkShard.ShardColor.GOLD],                                       # wave 4
 ]
 
 func _spawn_shard(cfg: Dictionary) -> void:

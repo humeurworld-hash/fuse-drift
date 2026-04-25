@@ -39,8 +39,14 @@ func _process(delta: float) -> void:
 			if players.size() > 0 and is_instance_valid(players[0]):
 				var target_x: float = players[0].position.x
 				position.x = lerpf(position.x, target_x, delta * 2.2)
-			# Also drifts slightly side-to-side on top of tracking
 			position.x += sin(_time * 3.0) * 18.0 * delta
+		4:
+			# Aggressive chase with erratic jitter
+			var players := get_tree().get_nodes_in_group("player")
+			if players.size() > 0 and is_instance_valid(players[0]):
+				var target_x: float = players[0].position.x
+				position.x = lerpf(position.x, target_x, delta * 4.0)
+			position.x += sin(_time * 6.0) * 22.0 * delta
 
 	position.x = clampf(position.x, 48.0, vp_width - 48.0)
 

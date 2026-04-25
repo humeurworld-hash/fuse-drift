@@ -1,15 +1,14 @@
 extends Area2D
 class_name MourkShard
 
-enum ShardColor { BLUE, GREEN, YELLOW, ORANGE, PURPLE, RED }
+enum ShardColor { TEAL, GREEN, ORANGE, PURPLE, GOLD }
 
 const SHARD_DATA := {
-	ShardColor.BLUE:   { "points": 8,  "tint": Color(0.55, 0.85, 1.00, 1.0), "texture": "res://scenes/pickups/shard blue.png" },
-	ShardColor.GREEN:  { "points": 12, "tint": Color(0.40, 1.00, 0.55, 1.0), "texture": "res://scenes/pickups/shard green.png" },
-	ShardColor.YELLOW: { "points": 20, "tint": Color(1.00, 0.95, 0.30, 1.0), "texture": "res://scenes/pickups/shard yellow.png" },
-	ShardColor.ORANGE: { "points": 30, "tint": Color(1.00, 0.60, 0.15, 1.0), "texture": "res://scenes/pickups/shard orange.png" },
-	ShardColor.PURPLE: { "points": 45, "tint": Color(0.80, 0.35, 1.00, 1.0), "texture": "res://scenes/pickups/shard purple.png" },
-	ShardColor.RED:    { "points": 60, "tint": Color(1.00, 0.25, 0.25, 1.0), "texture": "res://scenes/pickups/shard red.png" },
+	ShardColor.TEAL:   { "points": 10, "tint": Color(0.30, 0.90, 0.85, 1.0), "texture": "res://scenes/pickups/shard blue.png" },
+	ShardColor.GREEN:  { "points": 15, "tint": Color(0.40, 1.00, 0.55, 1.0), "texture": "res://scenes/pickups/shard green.png" },
+	ShardColor.ORANGE: { "points": 25, "tint": Color(1.00, 0.60, 0.15, 1.0), "texture": "res://scenes/pickups/shard orange.png" },
+	ShardColor.PURPLE: { "points": 40, "tint": Color(0.80, 0.35, 1.00, 1.0), "texture": "res://scenes/pickups/shard purple.png" },
+	ShardColor.GOLD:   { "points": 55, "tint": Color(1.00, 0.85, 0.15, 1.0), "texture": "res://scenes/pickups/shard yellow.png" },
 }
 
 @export var speed: float = 320.0
@@ -20,7 +19,7 @@ const SHARD_DATA := {
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var collect_sound: AudioStreamPlayer2D = $CollectSound
 
-var shard_color: ShardColor = ShardColor.BLUE
+var shard_color: ShardColor = ShardColor.TEAL
 var points: int = 8
 var _collecting := false
 

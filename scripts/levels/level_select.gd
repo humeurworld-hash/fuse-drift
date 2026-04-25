@@ -1,9 +1,9 @@
 extends Node2D
 
 const LEVEL_BG_PATHS := {
-	1: ["res://scenes/background/level 1.PNG", "res://scenes/background/level 1.png"],
-	2: ["res://scenes/background/level 2.PNG", "res://scenes/background/level 2.png"],
-	3: ["res://scenes/background/level 3.PNG", "res://scenes/background/level 3.png"],
+	1: ["res://scenes/background/new level 1.png", "res://scenes/background/level 1.PNG", "res://scenes/background/level 1.png"],
+	2: ["res://scenes/background/new level 2.png", "res://scenes/background/level 2.PNG", "res://scenes/background/level 2.png"],
+	3: ["res://scenes/background/new level 3.png", "res://scenes/background/level 3.PNG", "res://scenes/background/level 3.png"],
 }
 
 @onready var back_button: Button = $UI/BackButton

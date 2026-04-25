@@ -1,19 +1,19 @@
-[gd_scene format=3 uid="uid://canvas_drone3"]
+[gd_scene format=3 uid="uid://canvas_drone4"]
 
 [ext_resource type="Script" path="res://scripts/hazards/canvas_drone.gd" id="1_drone"]
-[ext_resource type="Texture2D" path="res://scenes/hazards/level 2 hazards/new drones/level 3.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://scenes/hazards/level 2 hazards/new drones/level 4.png" id="2_tex"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1"]
 radius = 100.0
 
-[node name="CanvasDrone3" type="Area2D"]
+[node name="CanvasDrone4" type="Area2D"]
 collision_layer = 1
 collision_mask = 1
 monitoring = false
 monitorable = true
 scale = Vector2(0.40, 0.40)
 script = ExtResource("1_drone")
-tier = 3
+tier = 4
 damage = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

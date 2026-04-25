@@ -134,10 +134,10 @@ func _spawn_rock(cfg: Dictionary) -> void:
 
 # Colors available per wave (escalates from common → rare as waves progress)
 const WAVE_SHARD_COLORS := [
-	[MourkShard.ShardColor.BLUE],                                      # wave 1
-	[MourkShard.ShardColor.BLUE,   MourkShard.ShardColor.GREEN],       # wave 2
-	[MourkShard.ShardColor.GREEN,  MourkShard.ShardColor.YELLOW],      # wave 3
-	[MourkShard.ShardColor.YELLOW, MourkShard.ShardColor.ORANGE],      # wave 4
+	[MourkShard.ShardColor.TEAL],                                       # wave 1
+	[MourkShard.ShardColor.TEAL,   MourkShard.ShardColor.GREEN],        # wave 2
+	[MourkShard.ShardColor.GREEN,  MourkShard.ShardColor.ORANGE],       # wave 3
+	[MourkShard.ShardColor.ORANGE, MourkShard.ShardColor.PURPLE],       # wave 4
 ]
 
 func _spawn_shard(cfg: Dictionary) -> void:

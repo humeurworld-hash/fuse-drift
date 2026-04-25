@@ -8,6 +8,8 @@ signal level_complete
 @export var drone1_scene: PackedScene = preload("res://scenes/hazards/level 2 hazards/CanvasDrone1.tscn")
 @export var drone2_scene: PackedScene = preload("res://scenes/hazards/level 2 hazards/CanvasDrone2.tscn")
 @export var drone3_scene: PackedScene = preload("res://scenes/hazards/level 2 hazards/CanvasDrone3.tscn")
+@export var drone4_scene: PackedScene = preload("res://scenes/hazards/level 2 hazards/CanvasDrone4.tscn")
+@export var scanning_drone_scene: PackedScene = preload("res://scenes/hazards/level 2 hazards/ScanningDrone.tscn")
 @export var shard_scene: PackedScene = preload("res://scenes/pickups/MourkShard.tscn")
 @export var side_padding: float = 72.0
 
@@ -31,14 +33,16 @@ const WAVE_DATA := [
 		"interval": 1.4,
 		"shard_interval": 2.0,
 		"speed": 360.0,
-		"tiers": [1, 2, 2]
+		"tiers": [1, 2, 3],
+		"scan_interval": 14.0
 	},
 	{
 		"duration": 38.0,
 		"interval": 1.1,
 		"shard_interval": 1.8,
 		"speed": 420.0,
-		"tiers": [1, 2, 3]
+		"tiers": [2, 3, 4],
+		"scan_interval": 10.0
 	}
 ]
 
@@ -53,6 +57,7 @@ var hazard_speed_mult: float = 1.0
 var wave_time := 0.0
 var drone_timer := 0.0
 var shard_timer := 0.0
+var scan_timer := 999.0
 
 var _in_gap := false
 var _gap_timer := 0.0
@@ -94,6 +99,12 @@ func _process(delta: float) -> void:
 		_spawn_drone(cfg)
 		drone_timer = randf_range(float(cfg["interval"]) * 0.8, float(cfg["interval"]) * 1.2)
 
+	if cfg.has("scan_interval"):
+		scan_timer -= delta
+		if scan_timer <= 0.0:
+			_spawn_scanning_drone()
+			scan_timer = randf_range(float(cfg["scan_interval"]) * 0.85, float(cfg["scan_interval"]) * 1.15)
+
 	if shard_timer <= 0.0:
 		_spawn_shard(cfg)
 		shard_timer = randf_range(float(cfg["shard_interval"]) * 0.85, float(cfg["shard_interval"]) * 1.15)
@@ -112,6 +123,10 @@ func _reset_timers_for_current_wave() -> void:
 	var cfg: Dictionary = WAVE_DATA[wave_index]
 	drone_timer = float(cfg["interval"]) * 0.6
 	shard_timer = float(cfg["shard_interval"]) * 0.9
+	if cfg.has("scan_interval"):
+		scan_timer = float(cfg["scan_interval"]) * 0.6
+	else:
+		scan_timer = 999.0
 
 func _spawn_drone(cfg: Dictionary) -> void:
 	var width := get_viewport().get_visible_rect().size.x
@@ -123,6 +138,7 @@ func _spawn_drone(cfg: Dictionary) -> void:
 		1: scene = drone1_scene
 		2: scene = drone2_scene
 		3: scene = drone3_scene
+		4: scene = drone4_scene
 		_: scene = drone1_scene
 
 	if scene == null:
@@ -134,12 +150,22 @@ func _spawn_drone(cfg: Dictionary) -> void:
 	hazards_root.add_child(drone)
 	drone.speed_mult = hazard_speed_mult
 
-# Level 2 starts mid-tier — greens and yellows, escalating to purples
+func _spawn_scanning_drone() -> void:
+	if scanning_drone_scene == null:
+		return
+	var width := get_viewport().get_visible_rect().size.x
+	var drone: ScanningDrone = scanning_drone_scene.instantiate()
+	drone.position = Vector2(randf_range(side_padding, width - side_padding), -150.0)
+	drone.speed = 170.0 + randf_range(-20.0, 20.0)
+	hazards_root.add_child(drone)
+	drone.speed_mult = hazard_speed_mult
+
+# Level 2 starts mid-tier — greens and oranges, escalating to gold
 const WAVE_SHARD_COLORS := [
-	[MourkShard.ShardColor.GREEN,  MourkShard.ShardColor.YELLOW],      # wave 1
-	[MourkShard.ShardColor.YELLOW, MourkShard.ShardColor.ORANGE],      # wave 2
-	[MourkShard.ShardColor.ORANGE, MourkShard.ShardColor.PURPLE],      # wave 3
-	[MourkShard.ShardColor.PURPLE],                                     # wave 4
+	[MourkShard.ShardColor.GREEN,  MourkShard.ShardColor.ORANGE],      # wave 1
+	[MourkShard.ShardColor.ORANGE, MourkShard.ShardColor.PURPLE],      # wave 2
+	[MourkShard.ShardColor.PURPLE, MourkShard.ShardColor.GOLD],        # wave 3
+	[MourkShard.ShardColor.GOLD],                                       # wave 4
 ]
 
 func _spawn_shard(cfg: Dictionary) -> void:

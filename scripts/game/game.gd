@@ -4,16 +4,19 @@ class_name Game
 enum GameState { START, PLAYING, DEAD, COMPLETE, PAUSED }
 
 const LEVEL_1_BG_TEXTURE_PATHS := [
+	"res://scenes/background/new level 1.png",
 	"res://scenes/background/level 1.PNG",
 	"res://assets/art/level1/level1_cave_bg.png",
 ]
 
 const LEVEL_2_BG_TEXTURE_PATHS := [
+	"res://scenes/background/new level 2.png",
 	"res://scenes/background/level 2.PNG",
 	"res://assets/art/level2/background.png",
 ]
 
 const LEVEL_3_BG_TEXTURE_PATHS := [
+	"res://scenes/background/new level 3.png",
 	"res://scenes/background/level 3.PNG",
 ]
 
@@ -94,6 +97,18 @@ const FUSE_DURATION := 8.0
 const FUSE_HAZARD_MULT := 0.55
 const FUSE_STREAK_TRIGGER := 10
 
+# Jackpot — Gold shard, ×3 multiplier for 8s
+var jackpot_active: bool = false
+var _jackpot_timer: float = 0.0
+const JACKPOT_DURATION := 8.0
+const JACKPOT_MULT := 3
+
+# Slow-time — Purple shard, hazards at 65% for 4s
+var slow_time_active: bool = false
+var _slow_time_timer: float = 0.0
+const SLOW_TIME_DURATION := 4.0
+const SLOW_TIME_HAZARD_MULT := 0.65
+
 func _ready() -> void:
 	add_to_group("game")
 	_setup_ui()
@@ -118,6 +133,16 @@ func _process(delta: float) -> void:
 		_update_fuse_countdown()
 		if _fuse_timer <= 0.0:
 			_deactivate_fuse_state()
+	# Jackpot countdown
+	if jackpot_active:
+		_jackpot_timer -= delta
+		if _jackpot_timer <= 0.0:
+			_deactivate_jackpot()
+	# Slow-time countdown
+	if slow_time_active:
+		_slow_time_timer -= delta
+		if _slow_time_timer <= 0.0:
+			_deactivate_slow_time()
 
 func _apply_ui_theme() -> void:
 	# ── Panels ───────────────────────────────────────────────────────────────
@@ -342,6 +367,10 @@ func start_level_1() -> void:
 	fuse_state_active = false
 	hazard_speed_mult = 1.0
 	_fuse_timer = 0.0
+	jackpot_active = false
+	_jackpot_timer = 0.0
+	slow_time_active = false
+	_slow_time_timer = 0.0
 	level1_spawner.hazard_speed_mult = 1.0
 	level2_spawner.hazard_speed_mult = 1.0
 	level3_spawner.hazard_speed_mult = 1.0
@@ -386,6 +415,10 @@ func start_level_2() -> void:
 	fuse_state_active = false
 	hazard_speed_mult = 1.0
 	_fuse_timer = 0.0
+	jackpot_active = false
+	_jackpot_timer = 0.0
+	slow_time_active = false
+	_slow_time_timer = 0.0
 	level1_spawner.hazard_speed_mult = 1.0
 	level2_spawner.hazard_speed_mult = 1.0
 	level3_spawner.hazard_speed_mult = 1.0
@@ -431,6 +464,10 @@ func start_level_3() -> void:
 	fuse_state_active = false
 	hazard_speed_mult = 1.0
 	_fuse_timer = 0.0
+	jackpot_active = false
+	_jackpot_timer = 0.0
+	slow_time_active = false
+	_slow_time_timer = 0.0
 	level1_spawner.hazard_speed_mult = 1.0
 	level2_spawner.hazard_speed_mult = 1.0
 	level3_spawner.hazard_speed_mult = 1.0
@@ -595,22 +632,41 @@ func _get_shard_multiplier() -> int:
 			return STREAK_MULTIPLIERS[i]
 	return 1
 
-func _on_mourk_collected(base_points: int, world_pos: Vector2) -> void:
+func _on_mourk_collected(base_points: int, world_pos: Vector2, shard_color: int) -> void:
 	if state != GameState.PLAYING:
 		return
 	shard_streak += 1
 	var mult := _get_shard_multiplier()
 	var pts := base_points * mult
+	if jackpot_active:
+		pts *= JACKPOT_MULT
 	score += pts
 	update_hud()
-	_animate_streak_collect()
 	# Fuse State — trigger at every 10th consecutive shard
 	if shard_streak % FUSE_STREAK_TRIGGER == 0:
 		if fuse_state_active:
-			_fuse_timer = FUSE_DURATION   # extend the run
+			_fuse_timer = FUSE_DURATION
 			_show_fuse_banner()
 		else:
 			_activate_fuse_state()
+	_animate_streak_collect()
+	# Color-specific effects
+	match shard_color:
+		MourkShard.ShardColor.ORANGE:
+			shard_streak += 5
+			if shard_streak % FUSE_STREAK_TRIGGER == 0:
+				if fuse_state_active:
+					_fuse_timer = FUSE_DURATION
+					_show_fuse_banner()
+				else:
+					_activate_fuse_state()
+			_animate_streak_collect()
+		MourkShard.ShardColor.PURPLE:
+			_apply_slow_time()
+		MourkShard.ShardColor.GREEN:
+			_apply_green_effect(world_pos)
+		MourkShard.ShardColor.GOLD:
+			_activate_jackpot(world_pos)
 	var label_text := "+%d" % pts
 	if mult > 1:
 		label_text += "  ×%d" % mult
@@ -618,18 +674,16 @@ func _on_mourk_collected(base_points: int, world_pos: Vector2) -> void:
 	_spawn_float_text(label_text, world_pos, _streak_font_size(mult), text_color)
 
 func _shard_color_for_points(pts: int) -> Color:
-	if pts >= 60:
-		return Color(1.00, 0.18, 0.18, 1.0)   # red
-	elif pts >= 45:
+	if pts >= 55:
+		return Color(1.00, 0.88, 0.15, 1.0)   # gold
+	elif pts >= 40:
 		return Color(0.72, 0.28, 1.00, 1.0)   # purple
-	elif pts >= 30:
+	elif pts >= 25:
 		return Color(1.00, 0.55, 0.10, 1.0)   # orange
-	elif pts >= 20:
-		return Color(1.00, 0.92, 0.20, 1.0)   # yellow
-	elif pts >= 12:
+	elif pts >= 15:
 		return Color(0.25, 1.00, 0.45, 1.0)   # green
 	else:
-		return Color(0.30, 0.65, 1.00, 1.0)   # blue
+		return Color(0.30, 0.90, 0.85, 1.0)   # teal
 
 # ── Streak display ────────────────────────────────────────────────────────────
 
@@ -731,6 +785,10 @@ func _on_player_hit() -> void:
 	_animate_streak_reset()
 	if fuse_state_active:
 		_deactivate_fuse_state()
+	if jackpot_active:
+		_deactivate_jackpot()
+	if slow_time_active:
+		_deactivate_slow_time()
 	state = GameState.DEAD
 	level1_spawner.stop_run()
 	level2_spawner.stop_run()
@@ -764,6 +822,10 @@ func _on_level_complete() -> void:
 		return
 	if fuse_state_active:
 		_deactivate_fuse_state()
+	if jackpot_active:
+		_deactivate_jackpot()
+	if slow_time_active:
+		_deactivate_slow_time()
 	state = GameState.COMPLETE
 	score += 300.0
 	level1_spawner.stop_run()
@@ -793,7 +855,7 @@ func _on_level_complete() -> void:
 	_update_best_score(final_score)
 	var next_line: String
 	match current_level:
-		1: next_line = "Level 2 — The Canvas awaits!"
+		1: next_line = "Level 2 — The Verge awaits!"
 		2: next_line = "Level 3 — The Loops awaits!"
 		_: next_line = "More levels coming soon."
 	clear_title.text = "LEVEL %d  CLEAR" % current_level
@@ -812,23 +874,29 @@ func _update_best_score(final_score: int) -> void:
 	Global.save_best(current_level, final_score)
 	best_score = Global.get_best(current_level)
 
+# ── Hazard speed management ───────────────────────────────────────────────────
+
+func _update_hazard_speed_mult() -> void:
+	var mult := 1.0
+	if fuse_state_active:
+		mult = FUSE_HAZARD_MULT
+	if slow_time_active:
+		mult = minf(mult, SLOW_TIME_HAZARD_MULT)
+	hazard_speed_mult = mult
+	for h in get_tree().get_nodes_in_group("hazard"):
+		if h.has_method("set_speed_mult"):
+			h.set_speed_mult(hazard_speed_mult)
+	level1_spawner.hazard_speed_mult = hazard_speed_mult
+	level2_spawner.hazard_speed_mult = hazard_speed_mult
+	level3_spawner.hazard_speed_mult = hazard_speed_mult
+
 # ── Fuse State ────────────────────────────────────────────────────────────────
 
 func _activate_fuse_state() -> void:
 	fuse_state_active = true
 	_fuse_timer = FUSE_DURATION
-	hazard_speed_mult = FUSE_HAZARD_MULT
-	# Slow all hazards already on screen
-	for h in get_tree().get_nodes_in_group("hazard"):
-		if h.has_method("set_speed_mult"):
-			h.set_speed_mult(hazard_speed_mult)
-	# Future spawns will also use the reduced speed
-	level1_spawner.hazard_speed_mult = hazard_speed_mult
-	level2_spawner.hazard_speed_mult = hazard_speed_mult
-	level3_spawner.hazard_speed_mult = hazard_speed_mult
-	# Player visual glow
+	_update_hazard_speed_mult()
 	player.enter_fuse_state()
-	# HUD: streak label switches to FUSE
 	streak_mult_label.text = "FUSE"
 	streak_mult_label.modulate = Color(1.0, 0.72, 0.18, 1.0)
 	streak_mult_label.scale = Vector2(1.45, 1.45)
@@ -839,21 +907,56 @@ func _activate_fuse_state() -> void:
 
 func _deactivate_fuse_state() -> void:
 	fuse_state_active = false
-	hazard_speed_mult = 1.0
-	# Restore hazard speeds
-	for h in get_tree().get_nodes_in_group("hazard"):
-		if h.has_method("set_speed_mult"):
-			h.set_speed_mult(1.0)
-	level1_spawner.hazard_speed_mult = 1.0
-	level2_spawner.hazard_speed_mult = 1.0
-	level3_spawner.hazard_speed_mult = 1.0
+	_update_hazard_speed_mult()
 	player.exit_fuse_state()
-	# Sync streak label back to real state
 	_animate_streak_collect()
 
 func _update_fuse_countdown() -> void:
 	streak_sub_label.text = "FUSE  %.1fs" % _fuse_timer
 	streak_sub_label.modulate = Color(1.0, 0.85, 0.30, 0.95)
+
+# ── Slow-time (Purple shard) ──────────────────────────────────────────────────
+
+func _apply_slow_time() -> void:
+	if fuse_state_active:
+		_fuse_timer += SLOW_TIME_DURATION
+	elif slow_time_active:
+		_slow_time_timer += SLOW_TIME_DURATION
+		_spawn_float_text("EXTENDED!", player.global_position + Vector2(0, -90), 40, Color(0.80, 0.35, 1.00, 1.0))
+	else:
+		_activate_slow_time()
+
+func _activate_slow_time() -> void:
+	slow_time_active = true
+	_slow_time_timer = SLOW_TIME_DURATION
+	_update_hazard_speed_mult()
+	_spawn_float_text("SLOW TIME!", player.global_position + Vector2(0, -90), 44, Color(0.80, 0.35, 1.00, 1.0))
+
+func _deactivate_slow_time() -> void:
+	slow_time_active = false
+	_update_hazard_speed_mult()
+
+# ── Jackpot (Gold shard) ──────────────────────────────────────────────────────
+
+func _activate_jackpot(world_pos: Vector2) -> void:
+	var refreshed := jackpot_active
+	jackpot_active = true
+	_jackpot_timer = JACKPOT_DURATION
+	var msg := "JACKPOT  EXT!" if refreshed else "JACKPOT!  ×%d" % JACKPOT_MULT
+	_spawn_float_text(msg, world_pos + Vector2(0, -90), 52, Color(1.00, 0.88, 0.15, 1.0))
+
+func _deactivate_jackpot() -> void:
+	jackpot_active = false
+
+# ── Green shard (heal / shield) ───────────────────────────────────────────────
+
+func _apply_green_effect(world_pos: Vector2) -> void:
+	if player.health < player.max_health:
+		player.heal(1)
+		_spawn_float_text("+1 HP", world_pos + Vector2(0, -90), 42, Color(0.35, 1.00, 0.50, 1.0))
+	else:
+		player.grant_shield(2.5)
+		_spawn_float_text("SHIELD!", world_pos + Vector2(0, -90), 42, Color(0.35, 1.00, 0.50, 1.0))
 
 func _show_fuse_banner() -> void:
 	# ── Character sprite — slams in from scale 0, bounces, then fades ─────────

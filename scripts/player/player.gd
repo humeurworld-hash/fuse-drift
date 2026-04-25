@@ -2,7 +2,7 @@ extends Area2D
 class_name Player
 
 signal hit
-signal mourk_collected(points: int, world_pos: Vector2)
+signal mourk_collected(points: int, world_pos: Vector2, shard_color: int)
 signal health_changed(new_health: int)
 signal dash_activated
 signal magnet_activated
@@ -157,6 +157,21 @@ func exit_fuse_state() -> void:
 	# Force _update_animation to re-evaluate on the next frame
 	_current_anim = &""
 
+func heal(amount: int) -> void:
+	if not alive:
+		return
+	health = mini(health + amount, max_health)
+	health_changed.emit(health)
+
+func grant_shield(duration: float) -> void:
+	if not alive:
+		return
+	invincible = true
+	_invincibility_timer = maxf(_invincibility_timer, duration)
+	var tween := create_tween()
+	tween.tween_property(self, "modulate", Color(0.40, 1.00, 0.45, 1.0), 0.10)
+	tween.tween_property(self, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.50)
+
 func _start_fuse_glow() -> void:
 	if _fuse_tween and _fuse_tween.is_valid():
 		_fuse_tween.kill()
@@ -303,7 +318,8 @@ func _check_overlaps() -> void:
 		elif area.is_in_group("mourk"):
 			if is_instance_valid(area) and area.has_method("collect"):
 				var pts: int = area.get("points") if area.get("points") != null else 12
-				mourk_collected.emit(pts, area.global_position)
+				var col: int = int(area.get("shard_color")) if area.get("shard_color") != null else 0
+				mourk_collected.emit(pts, area.global_position, col)
 				area.collect()
 
 # ── Rewind ────────────────────────────────────────────────────────────────────
