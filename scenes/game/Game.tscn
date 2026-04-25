@@ -24,6 +24,7 @@
 [ext_resource type="Texture2D" path="res://assets/ui/New UI/abillites/pulse normal.png" id="24_pulse"]
 [ext_resource type="Script" path="res://scripts/ui/sprite_number.gd" id="25_sprnum"]
 [ext_resource type="Texture2D" path="res://assets/ui/shard_counter_bg.png" id="26_shardcbg"]
+[ext_resource type="Texture2D" path="res://assets/ui/fuse_character.png" id="27_fusechar"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_game")
@@ -227,18 +228,24 @@ theme_override_colors/font_shadow_color = Color(0.0, 0.0, 0.0, 0.55)
 theme_override_constants/shadow_offset_x = 3
 theme_override_constants/shadow_offset_y = 3
 
+[node name="FuseCharacterSprite" type="Sprite2D" parent="UI"]
+visible = false
+position = Vector2(360.0, 590.0)
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("27_fusechar")
+
 [node name="FuseStateBanner" type="Label" parent="UI"]
 visible = false
 offset_left = 0.0
-offset_top = 530.0
+offset_top = 720.0
 offset_right = 720.0
-offset_bottom = 680.0
+offset_bottom = 800.0
 horizontal_alignment = 1
 vertical_alignment = 1
 text = "FUSE STATE"
-theme_override_font_sizes/font_size = 80
-theme_override_colors/font_color = Color(1.0, 0.78, 0.12, 1.0)
-theme_override_colors/font_shadow_color = Color(0.0, 0.0, 0.0, 0.80)
+theme_override_font_sizes/font_size = 62
+theme_override_colors/font_color = Color(0.15, 0.95, 0.88, 1.0)
+theme_override_colors/font_shadow_color = Color(0.0, 0.0, 0.0, 0.85)
 theme_override_constants/shadow_offset_x = 3
 theme_override_constants/shadow_offset_y = 4
 

@@ -50,6 +50,7 @@ const LEVEL_3_BG_TEXTURE_PATHS := [
 @onready var streak_mult_label: Label = $UI/StreakMultLabel
 @onready var streak_sub_label: Label = $UI/StreakSubLabel
 @onready var fuse_banner: Label = $UI/FuseStateBanner
+@onready var fuse_character_sprite: Sprite2D = $UI/FuseCharacterSprite
 
 @onready var game_over_panel: Panel = $UI/GameOverPanel
 @onready var game_over_title: Label = $UI/GameOverPanel/GameOverTitle
@@ -241,6 +242,7 @@ func _setup_ui() -> void:
 	wave_banner.visible = false
 	wave_banner.modulate = Color(1, 1, 1, 0)
 	fuse_banner.visible = false
+	fuse_character_sprite.visible = false
 	dash_button.visible = false
 	pulse_button.visible = false
 	streak_mult_label.visible = false
@@ -366,6 +368,7 @@ func start_level_1() -> void:
 	streak_mult_label.visible = true
 	streak_sub_label.visible = true
 	fuse_banner.visible = false
+	fuse_character_sprite.visible = false
 	_reset_streak_display()
 	_bg_scroll_speed = 0.03  # cave: slow, heavy drift
 	_setup_background(LEVEL_1_BG_TEXTURE_PATHS)
@@ -409,6 +412,7 @@ func start_level_2() -> void:
 	streak_mult_label.visible = true
 	streak_sub_label.visible = true
 	fuse_banner.visible = false
+	fuse_character_sprite.visible = false
 	_reset_streak_display()
 	_bg_scroll_speed = 0.05  # canvas: medium pace
 	_setup_background(LEVEL_2_BG_TEXTURE_PATHS)
@@ -453,6 +457,7 @@ func start_level_3() -> void:
 	streak_mult_label.visible = true
 	streak_sub_label.visible = true
 	fuse_banner.visible = false
+	fuse_character_sprite.visible = false
 	_reset_streak_display()
 	_bg_scroll_speed = 0.07  # loops: faster, more frantic
 	_setup_background(LEVEL_3_BG_TEXTURE_PATHS)
@@ -663,9 +668,9 @@ func _animate_streak_collect() -> void:
 	if fuse_state_active:
 		# During Fuse, label locks to "FUSE" — countdown updated each frame
 		streak_mult_label.text = "FUSE"
-		streak_mult_label.modulate = Color(1.0, 0.72, 0.18, 1.0)
+		streak_mult_label.modulate = Color(0.15, 0.95, 0.88, 1.0)
 		streak_sub_label.text = "FUSE  %.1fs" % _fuse_timer
-		streak_sub_label.modulate = Color(1.0, 0.85, 0.30, 0.95)
+		streak_sub_label.modulate = Color(0.25, 1.00, 0.92, 0.95)
 	else:
 		streak_mult_label.text = "×%d" % mult
 		streak_mult_label.modulate = color
@@ -744,6 +749,7 @@ func _on_player_hit() -> void:
 	life_hub.visible = false
 	wave_banner.visible = false
 	fuse_banner.visible = false
+	fuse_character_sprite.visible = false
 	game_over_sfx.play()
 	_screen_shake(12.0, 0.4)
 	var final_score := int(floor(score))
@@ -777,6 +783,7 @@ func _on_level_complete() -> void:
 	life_hub.visible = false
 	wave_banner.visible = false
 	fuse_banner.visible = false
+	fuse_character_sprite.visible = false
 	level_complete_sfx.play()
 	if current_level == 1:
 		Global.unlock_level(2)
@@ -849,14 +856,26 @@ func _update_fuse_countdown() -> void:
 	streak_sub_label.modulate = Color(1.0, 0.85, 0.30, 0.95)
 
 func _show_fuse_banner() -> void:
+	# ── Character sprite — slams in from scale 0, bounces, then fades ─────────
+	fuse_character_sprite.scale = Vector2(0.0, 0.0)
+	fuse_character_sprite.modulate = Color(1, 1, 1, 1)
+	fuse_character_sprite.visible = true
+	var char_tween := fuse_character_sprite.create_tween()
+	char_tween.tween_property(fuse_character_sprite, "scale", Vector2(0.5, 0.5), 0.32) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	char_tween.tween_interval(0.75)
+	char_tween.tween_property(fuse_character_sprite, "modulate", Color(1, 1, 1, 0), 0.40) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	char_tween.tween_callback(func(): fuse_character_sprite.visible = false)
+	# ── Text banner slides up below the character ─────────────────────────────
 	fuse_banner.modulate = Color(1, 1, 1, 0)
-	fuse_banner.position = Vector2(0.0, 570.0)
+	fuse_banner.position = Vector2(0.0, 760.0)
 	fuse_banner.visible = true
 	var tween := fuse_banner.create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(fuse_banner, "modulate", Color(1, 1, 1, 1), 0.18) \
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.tween_property(fuse_banner, "position:y", 530.0, 0.24) \
+	tween.tween_property(fuse_banner, "position:y", 720.0, 0.24) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.chain().tween_interval(1.0)
 	tween.chain().tween_property(fuse_banner, "modulate", Color(1, 1, 1, 0), 0.35) \

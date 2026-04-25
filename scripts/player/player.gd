@@ -155,9 +155,9 @@ func _start_fuse_glow() -> void:
 	if _fuse_tween and _fuse_tween.is_valid():
 		_fuse_tween.kill()
 	_fuse_tween = create_tween().set_loops()
-	_fuse_tween.tween_property(self, "modulate", Color(1.0, 0.78, 0.14, 1.0), 0.40) \
+	_fuse_tween.tween_property(self, "modulate", Color(0.15, 0.95, 0.88, 1.0), 0.40) \
 		.set_trans(Tween.TRANS_SINE)
-	_fuse_tween.tween_property(self, "modulate", Color(0.45, 0.95, 1.00, 1.0), 0.40) \
+	_fuse_tween.tween_property(self, "modulate", Color(0.05, 0.60, 0.56, 1.0), 0.40) \
 		.set_trans(Tween.TRANS_SINE)
 
 # ── Shard Magnet Pulse ────────────────────────────────────────────────────────
