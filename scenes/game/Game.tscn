@@ -24,7 +24,7 @@
 [ext_resource type="Texture2D" path="res://assets/ui/New UI/abillites/pulse normal.png" id="24_pulse"]
 [ext_resource type="Script" path="res://scripts/ui/sprite_number.gd" id="25_sprnum"]
 [ext_resource type="Texture2D" path="res://assets/ui/shard_counter_bg.png" id="26_shardcbg"]
-[ext_resource type="Texture2D" path="res://assets/ui/fuse_character.png" id="27_fusechar"]
+[ext_resource type="Texture2D" path="res://scenes/player/fuse/New Fuse/fuse state.png" id="27_fusechar"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_game")
