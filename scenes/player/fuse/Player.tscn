@@ -4,10 +4,10 @@
 [ext_resource type="Texture2D" path="res://scenes/player/fuse/New Fuse/idle.png" id="2_hover"]
 [ext_resource type="Texture2D" path="res://scenes/player/fuse/New Fuse/move left.png" id="3_left"]
 [ext_resource type="Texture2D" path="res://scenes/player/fuse/New Fuse/move right.png" id="4_right"]
-[ext_resource type="Texture2D" path="res://scenes/player/fuse/Damaged.png" id="5_damaged"]
+[ext_resource type="Texture2D" path="res://scenes/player/fuse/New Fuse/Stunned.png" id="5_stunned"]
 [ext_resource type="Texture2D" path="res://scenes/player/fuse/New Fuse/Glitched.png" id="6_glitch"]
-[ext_resource type="Texture2D" path="res://scenes/player/fuse/New Fuse/Stunned.png" id="7_stunned"]
-[ext_resource type="Texture2D" path="res://scenes/player/fuse/New Fuse/worried.png" id="8_worried"]
+[ext_resource type="Texture2D" path="res://scenes/player/fuse/New Fuse/worried.png" id="7_worried"]
+[ext_resource type="Texture2D" path="res://scenes/player/fuse/New Fuse/fuse state.png" id="8_fusestate"]
 
 [sub_resource type="SpriteFrames" id="SF_player"]
 animations = [{
@@ -26,7 +26,7 @@ animations = [{
 "name": &"move_right",
 "speed": 5.0
 }, {
-"frames": [{"duration": 1.0, "texture": ExtResource("5_damaged")}],
+"frames": [{"duration": 1.0, "texture": ExtResource("5_stunned")}],
 "loop": false,
 "name": &"damaged",
 "speed": 5.0
@@ -36,14 +36,14 @@ animations = [{
 "name": &"glitch",
 "speed": 5.0
 }, {
-"frames": [{"duration": 1.0, "texture": ExtResource("7_stunned")}],
-"loop": true,
-"name": &"stunned",
-"speed": 5.0
-}, {
-"frames": [{"duration": 1.0, "texture": ExtResource("8_worried")}],
+"frames": [{"duration": 1.0, "texture": ExtResource("7_worried")}],
 "loop": true,
 "name": &"worried",
+"speed": 5.0
+}, {
+"frames": [{"duration": 1.0, "texture": ExtResource("8_fusestate")}],
+"loop": true,
+"name": &"fuse_state",
 "speed": 5.0
 }]
 

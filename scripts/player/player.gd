@@ -140,6 +140,10 @@ func try_dash() -> void:
 
 func enter_fuse_state() -> void:
 	_fuse_state = true
+	if sprite and not _rewinding:
+		_stop_hover_bob()
+		_current_anim = &"fuse_state"
+		sprite.play(&"fuse_state")
 	if not _dashing and not _magnet_active and not invincible:
 		_start_fuse_glow()
 
@@ -150,6 +154,8 @@ func exit_fuse_state() -> void:
 	_fuse_tween = null
 	if not _dashing and not _magnet_active and not invincible:
 		modulate = Color(1, 1, 1, 1)
+	# Force _update_animation to re-evaluate on the next frame
+	_current_anim = &""
 
 func _start_fuse_glow() -> void:
 	if _fuse_tween and _fuse_tween.is_valid():
@@ -233,33 +239,32 @@ func _record_history(delta: float) -> void:
 			_pos_history.remove_at(0)
 
 func _update_animation() -> void:
-	# Don't fight the glitch anim during rewind
-	if _rewinding:
+	# Don't fight the glitch anim during rewind, or the fuse sprite during Fuse State
+	if _rewinding or _fuse_state:
 		return
+	# Idle sprite: "worried" on last HP in multi-health levels, otherwise "hover"
+	var idle_anim: StringName = &"worried" if (health == 1 and max_health > 1) else &"hover"
 	var new_anim: StringName
 	if dragging:
-		# While finger is held, lean based on where the finger IS relative to
-		# screen centre — the lean stays as long as you hold left/right.
 		var offset := target_x - screen_size.x * 0.5
 		if offset < -30.0:
 			new_anim = &"move_left"
 		elif offset > 30.0:
 			new_anim = &"move_right"
 		else:
-			new_anim = &"hover"
+			new_anim = idle_anim
 	else:
-		# Finger lifted — keep lean while still catching up, then settle to hover
 		var dx := target_x - position.x
 		if dx < -8.0:
 			new_anim = &"move_left"
 		elif dx > 8.0:
 			new_anim = &"move_right"
 		else:
-			new_anim = &"hover"
+			new_anim = idle_anim
 	if new_anim != _current_anim:
 		_current_anim = new_anim
 		sprite.play(new_anim)
-		if new_anim == &"hover":
+		if new_anim == &"hover" or new_anim == &"worried":
 			_start_hover_bob()
 		else:
 			_stop_hover_bob()
