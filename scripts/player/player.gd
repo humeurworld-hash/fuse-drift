@@ -57,6 +57,10 @@ var _magnet_timer: float = 0.0
 var _magnet_cooldown: float = 0.0
 var _magnet_tween: Tween = null
 
+# ── Fuse State visual ─────────────────────────────────────────────────────────
+var _fuse_state: bool = false
+var _fuse_tween: Tween = null
+
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 
 func _ready() -> void:
@@ -75,9 +79,12 @@ func _process(delta: float) -> void:
 		_invincibility_timer -= delta
 		if _invincibility_timer <= 0.0:
 			invincible = false
-			if not _magnet_active:   # don't clobber magnet glow
-				modulate = Color(1, 1, 1, 1)
 			_dashing = false
+			if not _magnet_active:
+				if _fuse_state:
+					_start_fuse_glow()
+				else:
+					modulate = Color(1, 1, 1, 1)
 
 	# ── Dash cooldown ────────────────────────────────────────────────────────
 	if _dash_cooldown > 0.0:
@@ -129,6 +136,30 @@ func try_dash() -> void:
 		_current_anim = &""          # force animation update next frame
 	dash_activated.emit()
 
+# ── Fuse State visual ─────────────────────────────────────────────────────────
+
+func enter_fuse_state() -> void:
+	_fuse_state = true
+	if not _dashing and not _magnet_active and not invincible:
+		_start_fuse_glow()
+
+func exit_fuse_state() -> void:
+	_fuse_state = false
+	if _fuse_tween and _fuse_tween.is_valid():
+		_fuse_tween.kill()
+	_fuse_tween = null
+	if not _dashing and not _magnet_active and not invincible:
+		modulate = Color(1, 1, 1, 1)
+
+func _start_fuse_glow() -> void:
+	if _fuse_tween and _fuse_tween.is_valid():
+		_fuse_tween.kill()
+	_fuse_tween = create_tween().set_loops()
+	_fuse_tween.tween_property(self, "modulate", Color(1.0, 0.78, 0.14, 1.0), 0.40) \
+		.set_trans(Tween.TRANS_SINE)
+	_fuse_tween.tween_property(self, "modulate", Color(0.45, 0.95, 1.00, 1.0), 0.40) \
+		.set_trans(Tween.TRANS_SINE)
+
 # ── Shard Magnet Pulse ────────────────────────────────────────────────────────
 
 func can_magnet() -> bool:
@@ -156,8 +187,11 @@ func _end_magnet() -> void:
 	if _magnet_tween and _magnet_tween.is_valid():
 		_magnet_tween.kill()
 	_magnet_tween = null
-	if not _dashing:
-		modulate = Color(1, 1, 1, 1)
+	if not _dashing and not invincible:
+		if _fuse_state:
+			_start_fuse_glow()
+		else:
+			modulate = Color(1, 1, 1, 1)
 	magnet_deactivated.emit()
 
 func _pull_nearby_shards(delta: float) -> void:
@@ -297,6 +331,8 @@ func apply_rewind() -> void:
 		if alive and sprite:
 			_current_anim = &""
 			_rewinding = false
+		if _fuse_state and not _magnet_active and not invincible:
+			_start_fuse_glow()
 	)
 
 # ── Hit / health ──────────────────────────────────────────────────────────────
@@ -387,9 +423,13 @@ func die() -> void:
 	_rewinding = false
 	_dashing = false
 	_magnet_active = false
+	_fuse_state = false
 	if _magnet_tween and _magnet_tween.is_valid():
 		_magnet_tween.kill()
 	_magnet_tween = null
+	if _fuse_tween and _fuse_tween.is_valid():
+		_fuse_tween.kill()
+	_fuse_tween = null
 	_stop_hover_bob()
 	if sprite:
 		sprite.position = Vector2.ZERO
@@ -411,9 +451,13 @@ func reset_player() -> void:
 	_magnet_active = false
 	_magnet_timer = 0.0
 	_magnet_cooldown = 0.0
+	_fuse_state = false
 	if _magnet_tween and _magnet_tween.is_valid():
 		_magnet_tween.kill()
 	_magnet_tween = null
+	if _fuse_tween and _fuse_tween.is_valid():
+		_fuse_tween.kill()
+	_fuse_tween = null
 	_pos_history.clear()
 	_current_anim = &""
 	health = max_health

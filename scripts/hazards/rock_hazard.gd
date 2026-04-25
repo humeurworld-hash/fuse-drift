@@ -25,6 +25,10 @@ const TEXTURE_PATHS := [
 ]
 
 var horizontal_drift: float = 0.0
+var speed_mult: float = 1.0
+
+func set_speed_mult(mult: float) -> void:
+	speed_mult = mult
 
 # Near-miss — fires once when the rock crosses the player's Y level
 const NEAR_MISS_RADIUS := 80.0
@@ -45,7 +49,7 @@ func _ready() -> void:
 		fall_sound.play()
 
 func _process(delta: float) -> void:
-	position.y += speed * delta
+	position.y += speed * speed_mult * delta
 	position.x += horizontal_drift * delta
 	rotation += spin_speed * delta
 

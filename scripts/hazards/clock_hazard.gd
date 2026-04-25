@@ -8,6 +8,10 @@ class_name ClockHazard
 
 var _time: float = 0.0
 var _start_x: float = 0.0
+var speed_mult: float = 1.0
+
+func set_speed_mult(mult: float) -> void:
+	speed_mult = mult
 
 func _ready() -> void:
 	add_to_group("hazard")
@@ -17,7 +21,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_time += delta
-	position.y += speed * delta
+	position.y += speed * speed_mult * delta
 
 	var vp_width := get_viewport().get_visible_rect().size.x
 

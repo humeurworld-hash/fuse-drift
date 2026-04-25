@@ -38,6 +38,7 @@ const LEVEL_3_BG_TEXTURE_PATHS := [
 @onready var best_label: Label = $UI/BestLabel
 @onready var score_number: SpriteNumber = $UI/ScoreNumber
 @onready var best_number: SpriteNumber = $UI/BestNumber
+@onready var shard_counter_bg: TextureRect = $UI/ShardCounterBG
 @onready var wave_label: Label = $UI/WaveLabel
 @onready var health_label: Label = $UI/HealthLabel
 @onready var pause_button: TextureButton = $UI/PauseButton
@@ -48,6 +49,7 @@ const LEVEL_3_BG_TEXTURE_PATHS := [
 @onready var pulse_label: Label = $UI/PulseButton/PulseLabel
 @onready var streak_mult_label: Label = $UI/StreakMultLabel
 @onready var streak_sub_label: Label = $UI/StreakSubLabel
+@onready var fuse_banner: Label = $UI/FuseStateBanner
 
 @onready var game_over_panel: Panel = $UI/GameOverPanel
 @onready var game_over_title: Label = $UI/GameOverPanel/GameOverTitle
@@ -83,6 +85,14 @@ const STREAK_THRESHOLDS := [15, 10, 5, 0]   # checked in order; first match wins
 const STREAK_MULTIPLIERS := [4, 3, 2, 1]
 const BASE_SHARD_PTS := 12
 
+# Fuse State — triggered at every 10 consecutive shards
+var fuse_state_active: bool = false
+var hazard_speed_mult: float = 1.0
+var _fuse_timer: float = 0.0
+const FUSE_DURATION := 8.0
+const FUSE_HAZARD_MULT := 0.55
+const FUSE_STREAK_TRIGGER := 10
+
 func _ready() -> void:
 	add_to_group("game")
 	_setup_ui()
@@ -101,6 +111,12 @@ func _process(delta: float) -> void:
 	update_hud()
 	_update_bg_parallax(delta)
 	_update_ability_buttons()
+	# Fuse State countdown
+	if fuse_state_active:
+		_fuse_timer -= delta
+		_update_fuse_countdown()
+		if _fuse_timer <= 0.0:
+			_deactivate_fuse_state()
 
 func _apply_ui_theme() -> void:
 	# ── Panels ───────────────────────────────────────────────────────────────
@@ -204,9 +220,10 @@ func _setup_ui() -> void:
 	wave_label.text = "Wave 1/4"
 	health_label.text = ""
 	score_hub.visible = false
+	life_hub.visible = false
+	shard_counter_bg.visible = false
 	score_number.visible = false
 	best_number.visible = false
-	life_hub.visible = false
 	score_label.visible = false
 	best_label.visible = false
 	wave_label.visible = false
@@ -223,6 +240,7 @@ func _setup_ui() -> void:
 	pause_panel.visible = false
 	wave_banner.visible = false
 	wave_banner.modulate = Color(1, 1, 1, 0)
+	fuse_banner.visible = false
 	dash_button.visible = false
 	pulse_button.visible = false
 	streak_mult_label.visible = false
@@ -319,15 +337,23 @@ func start_level_1() -> void:
 	state = GameState.PLAYING
 	score = 0.0
 	shard_streak = 0
+	fuse_state_active = false
+	hazard_speed_mult = 1.0
+	_fuse_timer = 0.0
+	level1_spawner.hazard_speed_mult = 1.0
+	level2_spawner.hazard_speed_mult = 1.0
+	level3_spawner.hazard_speed_mult = 1.0
 	current_wave = 1
 	total_waves = 4
 	clear_run_objects()
 	player.setup(1)
+	player.exit_fuse_state()
 	game_over_panel.visible = false
 	level_clear_panel.visible = false
 	pause_panel.visible = false
-	score_hub.visible = true
+	score_hub.visible = false
 	life_hub.visible = false
+	shard_counter_bg.visible = true
 	score_label.visible = false
 	score_number.visible = true
 	best_label.visible = false
@@ -339,6 +365,7 @@ func start_level_1() -> void:
 	pulse_button.visible = true
 	streak_mult_label.visible = true
 	streak_sub_label.visible = true
+	fuse_banner.visible = false
 	_reset_streak_display()
 	_bg_scroll_speed = 0.03  # cave: slow, heavy drift
 	_setup_background(LEVEL_1_BG_TEXTURE_PATHS)
@@ -353,15 +380,23 @@ func start_level_2() -> void:
 	state = GameState.PLAYING
 	score = 0.0
 	shard_streak = 0
+	fuse_state_active = false
+	hazard_speed_mult = 1.0
+	_fuse_timer = 0.0
+	level1_spawner.hazard_speed_mult = 1.0
+	level2_spawner.hazard_speed_mult = 1.0
+	level3_spawner.hazard_speed_mult = 1.0
 	current_wave = 1
 	total_waves = 4
 	clear_run_objects()
 	player.setup(3)
+	player.exit_fuse_state()
 	game_over_panel.visible = false
 	level_clear_panel.visible = false
 	pause_panel.visible = false
-	score_hub.visible = true
-	life_hub.visible = true
+	score_hub.visible = false
+	life_hub.visible = false
+	shard_counter_bg.visible = true
 	score_label.visible = false
 	score_number.visible = true
 	best_label.visible = false
@@ -373,6 +408,7 @@ func start_level_2() -> void:
 	pulse_button.visible = true
 	streak_mult_label.visible = true
 	streak_sub_label.visible = true
+	fuse_banner.visible = false
 	_reset_streak_display()
 	_bg_scroll_speed = 0.05  # canvas: medium pace
 	_setup_background(LEVEL_2_BG_TEXTURE_PATHS)
@@ -388,15 +424,23 @@ func start_level_3() -> void:
 	state = GameState.PLAYING
 	score = 0.0
 	shard_streak = 0
+	fuse_state_active = false
+	hazard_speed_mult = 1.0
+	_fuse_timer = 0.0
+	level1_spawner.hazard_speed_mult = 1.0
+	level2_spawner.hazard_speed_mult = 1.0
+	level3_spawner.hazard_speed_mult = 1.0
 	current_wave = 1
 	total_waves = 4
 	clear_run_objects()
 	player.setup(3)
+	player.exit_fuse_state()
 	game_over_panel.visible = false
 	level_clear_panel.visible = false
 	pause_panel.visible = false
-	score_hub.visible = true
-	life_hub.visible = true
+	score_hub.visible = false
+	life_hub.visible = false
+	shard_counter_bg.visible = true
 	score_label.visible = false
 	score_number.visible = true
 	best_label.visible = false
@@ -408,6 +452,7 @@ func start_level_3() -> void:
 	pulse_button.visible = true
 	streak_mult_label.visible = true
 	streak_sub_label.visible = true
+	fuse_banner.visible = false
 	_reset_streak_display()
 	_bg_scroll_speed = 0.07  # loops: faster, more frantic
 	_setup_background(LEVEL_3_BG_TEXTURE_PATHS)
@@ -554,10 +599,16 @@ func _on_mourk_collected(base_points: int, world_pos: Vector2) -> void:
 	score += pts
 	update_hud()
 	_animate_streak_collect()
+	# Fuse State — trigger at every 10th consecutive shard
+	if shard_streak % FUSE_STREAK_TRIGGER == 0:
+		if fuse_state_active:
+			_fuse_timer = FUSE_DURATION   # extend the run
+			_show_fuse_banner()
+		else:
+			_activate_fuse_state()
 	var label_text := "+%d" % pts
 	if mult > 1:
 		label_text += "  ×%d" % mult
-	# Tint float text to match the shard colour
 	var text_color := _shard_color_for_points(base_points).lerp(_streak_color(mult), 0.45)
 	_spawn_float_text(label_text, world_pos, _streak_font_size(mult), text_color)
 
@@ -609,18 +660,24 @@ func _animate_streak_collect() -> void:
 	var mult := _get_shard_multiplier()
 	var color := _streak_color(mult)
 
-	# Update text
-	streak_mult_label.text = "×%d" % mult
-	streak_mult_label.modulate = color
-	var next_t := _next_streak_threshold()
-	if next_t < 0:
-		streak_sub_label.text = "MAX COMBO"
-		streak_sub_label.modulate = Color(color.r, color.g, color.b, 0.9)
+	if fuse_state_active:
+		# During Fuse, label locks to "FUSE" — countdown updated each frame
+		streak_mult_label.text = "FUSE"
+		streak_mult_label.modulate = Color(1.0, 0.72, 0.18, 1.0)
+		streak_sub_label.text = "FUSE  %.1fs" % _fuse_timer
+		streak_sub_label.modulate = Color(1.0, 0.85, 0.30, 0.95)
 	else:
-		streak_sub_label.text = "%d  →  %d" % [shard_streak, next_t]
-		streak_sub_label.modulate = Color(0.85, 0.85, 0.85, 0.75)
+		streak_mult_label.text = "×%d" % mult
+		streak_mult_label.modulate = color
+		var next_t := _next_streak_threshold()
+		if next_t < 0:
+			streak_sub_label.text = "MAX COMBO"
+			streak_sub_label.modulate = Color(color.r, color.g, color.b, 0.9)
+		else:
+			streak_sub_label.text = "%d  →  %d" % [shard_streak, next_t]
+			streak_sub_label.modulate = Color(0.85, 0.85, 0.85, 0.75)
 
-	# Scale punch: pop up then spring back elastically from the centre pivot
+	# Scale punch
 	streak_mult_label.scale = Vector2(1.38, 1.38)
 	var tween := streak_mult_label.create_tween()
 	tween.tween_property(streak_mult_label, "scale", Vector2.ONE, 0.38) \
@@ -667,6 +724,8 @@ func _on_player_hit() -> void:
 		return
 	shard_streak = 0
 	_animate_streak_reset()
+	if fuse_state_active:
+		_deactivate_fuse_state()
 	state = GameState.DEAD
 	level1_spawner.stop_run()
 	level2_spawner.stop_run()
@@ -679,10 +738,12 @@ func _on_player_hit() -> void:
 	streak_mult_label.visible = false
 	streak_sub_label.visible = false
 	score_hub.visible = false
+	shard_counter_bg.visible = false
 	score_number.visible = false
 	best_number.visible = false
 	life_hub.visible = false
 	wave_banner.visible = false
+	fuse_banner.visible = false
 	game_over_sfx.play()
 	_screen_shake(12.0, 0.4)
 	var final_score := int(floor(score))
@@ -695,6 +756,8 @@ func _on_player_hit() -> void:
 func _on_level_complete() -> void:
 	if state != GameState.PLAYING:
 		return
+	if fuse_state_active:
+		_deactivate_fuse_state()
 	state = GameState.COMPLETE
 	score += 300.0
 	level1_spawner.stop_run()
@@ -708,10 +771,12 @@ func _on_level_complete() -> void:
 	streak_mult_label.visible = false
 	streak_sub_label.visible = false
 	score_hub.visible = false
+	shard_counter_bg.visible = false
 	score_number.visible = false
 	best_number.visible = false
 	life_hub.visible = false
 	wave_banner.visible = false
+	fuse_banner.visible = false
 	level_complete_sfx.play()
 	if current_level == 1:
 		Global.unlock_level(2)
@@ -739,3 +804,61 @@ func _on_music_finished() -> void:
 func _update_best_score(final_score: int) -> void:
 	Global.save_best(current_level, final_score)
 	best_score = Global.get_best(current_level)
+
+# ── Fuse State ────────────────────────────────────────────────────────────────
+
+func _activate_fuse_state() -> void:
+	fuse_state_active = true
+	_fuse_timer = FUSE_DURATION
+	hazard_speed_mult = FUSE_HAZARD_MULT
+	# Slow all hazards already on screen
+	for h in get_tree().get_nodes_in_group("hazard"):
+		if h.has_method("set_speed_mult"):
+			h.set_speed_mult(hazard_speed_mult)
+	# Future spawns will also use the reduced speed
+	level1_spawner.hazard_speed_mult = hazard_speed_mult
+	level2_spawner.hazard_speed_mult = hazard_speed_mult
+	level3_spawner.hazard_speed_mult = hazard_speed_mult
+	# Player visual glow
+	player.enter_fuse_state()
+	# HUD: streak label switches to FUSE
+	streak_mult_label.text = "FUSE"
+	streak_mult_label.modulate = Color(1.0, 0.72, 0.18, 1.0)
+	streak_mult_label.scale = Vector2(1.45, 1.45)
+	var tween := streak_mult_label.create_tween()
+	tween.tween_property(streak_mult_label, "scale", Vector2.ONE, 0.42) \
+		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	_show_fuse_banner()
+
+func _deactivate_fuse_state() -> void:
+	fuse_state_active = false
+	hazard_speed_mult = 1.0
+	# Restore hazard speeds
+	for h in get_tree().get_nodes_in_group("hazard"):
+		if h.has_method("set_speed_mult"):
+			h.set_speed_mult(1.0)
+	level1_spawner.hazard_speed_mult = 1.0
+	level2_spawner.hazard_speed_mult = 1.0
+	level3_spawner.hazard_speed_mult = 1.0
+	player.exit_fuse_state()
+	# Sync streak label back to real state
+	_animate_streak_collect()
+
+func _update_fuse_countdown() -> void:
+	streak_sub_label.text = "FUSE  %.1fs" % _fuse_timer
+	streak_sub_label.modulate = Color(1.0, 0.85, 0.30, 0.95)
+
+func _show_fuse_banner() -> void:
+	fuse_banner.modulate = Color(1, 1, 1, 0)
+	fuse_banner.position = Vector2(0.0, 570.0)
+	fuse_banner.visible = true
+	var tween := fuse_banner.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(fuse_banner, "modulate", Color(1, 1, 1, 1), 0.18) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(fuse_banner, "position:y", 530.0, 0.24) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.chain().tween_interval(1.0)
+	tween.chain().tween_property(fuse_banner, "modulate", Color(1, 1, 1, 0), 0.35) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.chain().tween_callback(func(): fuse_banner.visible = false)

@@ -48,6 +48,7 @@ const WAVE_GAP := 1.8
 
 var active := false
 var wave_index := 0
+var hazard_speed_mult: float = 1.0
 var wave_time := 0.0
 var rock_timer := 0.0
 var shard_timer := 0.0
@@ -120,6 +121,7 @@ func _spawn_rock(cfg: Dictionary) -> void:
 	rock.position = Vector2(randf_range(side_padding, width - side_padding), -120.0)
 	rock.speed = float(cfg["rock_speed"]) + randf_range(-30.0, 60.0)
 	hazards_root.add_child(rock)
+	rock.speed_mult = hazard_speed_mult
 
 	if randf() < float(cfg["double_chance"]):
 		var rock2: RockHazard = rock_scene.instantiate()
@@ -128,6 +130,7 @@ func _spawn_rock(cfg: Dictionary) -> void:
 		rock2.position = Vector2(second_x, -160.0)
 		rock2.speed = float(cfg["rock_speed"]) + randf_range(10.0, 85.0)
 		hazards_root.add_child(rock2)
+		rock2.speed_mult = hazard_speed_mult
 
 # Colors available per wave (escalates from common → rare as waves progress)
 const WAVE_SHARD_COLORS := [

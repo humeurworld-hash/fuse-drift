@@ -49,6 +49,7 @@ const WAVE_GAP := 1.8
 
 var active := false
 var wave_index := 0
+var hazard_speed_mult: float = 1.0
 var wave_time := 0.0
 var drone_timer := 0.0
 var shard_timer := 0.0
@@ -131,6 +132,7 @@ func _spawn_drone(cfg: Dictionary) -> void:
 	drone.speed = float(cfg["speed"]) + randf_range(-20.0, 40.0)
 	drone.position = Vector2(randf_range(side_padding, width - side_padding), -140.0)
 	hazards_root.add_child(drone)
+	drone.speed_mult = hazard_speed_mult
 
 # Level 2 starts mid-tier — greens and yellows, escalating to purples
 const WAVE_SHARD_COLORS := [
