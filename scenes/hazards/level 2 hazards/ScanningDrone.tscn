@@ -2,6 +2,8 @@
 
 [ext_resource type="Script" path="res://scripts/hazards/scanning_drone.gd" id="1_scan"]
 [ext_resource type="Texture2D" path="res://scenes/hazards/level 2 hazards/new drones/scanning.png" id="2_tex"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_scan_warning_beep_1.mp3" id="3_beep1"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_scan_warning_beep_2.mp3" id="4_beep2"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1"]
 radius = 90.0
@@ -20,3 +22,11 @@ shape = SubResource("CircleShape2D_1")
 
 [node name="Body" type="Sprite2D" parent="."]
 texture = ExtResource("2_tex")
+
+[node name="Beep1" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("3_beep1")
+volume_db = -3.0
+
+[node name="Beep2" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("4_beep2")
+volume_db = -3.0

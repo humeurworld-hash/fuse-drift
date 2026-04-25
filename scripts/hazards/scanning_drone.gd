@@ -14,10 +14,17 @@ var _target_x: float = 0.0
 var _aim_line: Line2D = null
 var _fire_poly: Polygon2D = null
 
+var _beep_timer: float = 0.0
+var _beep_toggle: bool = false
+const BEEP_INTERVAL := 0.32
+
 const SCAN_TRIGGER_RATIO := 0.32   # % of screen height where scanning begins
 const SCAN_DURATION      := 1.4   # seconds the aim beam tracks the player
 const FIRE_DURATION      := 0.38  # seconds the fire beam is visible
 const BEAM_WIDTH         := 72.0  # width of the fire column
+
+@onready var beep1: AudioStreamPlayer2D = $Beep1
+@onready var beep2: AudioStreamPlayer2D = $Beep2
 
 func set_speed_mult(mult: float) -> void:
 	speed_mult = mult
@@ -37,6 +44,14 @@ func _process(delta: float) -> void:
 
 		Phase.SCAN:
 			_phase_timer -= delta
+			_beep_timer -= delta
+			if _beep_timer <= 0.0:
+				if _beep_toggle:
+					beep1.play()
+				else:
+					beep2.play()
+				_beep_toggle = not _beep_toggle
+				_beep_timer = BEEP_INTERVAL
 			_track_player()
 			_update_aim_line(vp_h)
 			if _phase_timer <= 0.0:
@@ -62,6 +77,8 @@ func _track_player() -> void:
 func _begin_scan(vp_h: float) -> void:
 	_phase = Phase.SCAN
 	_phase_timer = SCAN_DURATION
+	_beep_timer = 0.0
+	_beep_toggle = false
 	_track_player()
 	_aim_line = Line2D.new()
 	_aim_line.width = 3.0

@@ -5,7 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://bh05jkhqjs0qu" path="res://assets/ui/life_hub.PNG" id="21_lifehub"]
 [ext_resource type="Texture2D" uid="uid://c02c3v4pi5300" path="res://scenes/menu/Pause Button.PNG" id="22_pause"]
 [ext_resource type="AudioStream" uid="uid://cp7shewmcy8vh" path="res://assets/audio/glitch-cathedral.mp3" id="10_music"]
-[ext_resource type="AudioStream" uid="uid://yvps60xcwhm5" path="res://assets/audio/level_complete.mp3" id="11_complete"]
+[ext_resource type="AudioStream" uid="uid://yvps60xcwhm5" path="res://assets/audio/sfx_Level_clear.mp3" id="11_complete"]
 [ext_resource type="AudioStream" uid="uid://bq434225nog0n" path="res://assets/audio/game_over.mp3" id="12_gameover"]
 [ext_resource type="AudioStream" uid="uid://si3dqq2foqpj" path="res://assets/audio/button_click.mp3" id="13_click"]
 [ext_resource type="Script" uid="uid://bek2qdjjveqm7" path="res://scripts/game/level1_spawner.gd" id="2_spawner1"]
@@ -25,6 +25,10 @@
 [ext_resource type="Script" uid="uid://dsnl73mufwtjo" path="res://scripts/ui/sprite_number.gd" id="25_sprnum"]
 [ext_resource type="Texture2D" uid="uid://d0vdl8dwsokql" path="res://assets/ui/new shard counter.png" id="26_shardcbg"]
 [ext_resource type="Texture2D" uid="uid://bttc07r6nl2u3" path="res://scenes/player/fuse/New Fuse/fuse state.png" id="27_fusechar"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_fuse_activate.mp3" id="30_fuse"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_jackpot_start.mp3" id="31_jackpot"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_slow_time_loop.mp3" id="32_slowtime"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_heal_green.mp3" id="33_green"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_game")
@@ -80,6 +84,22 @@ volume_db = 0.0
 [node name="ButtonClickSfx" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("13_click")
 volume_db = -4.0
+
+[node name="FuseSfx" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("30_fuse")
+volume_db = -2.0
+
+[node name="JackpotSfx" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("31_jackpot")
+volume_db = -2.0
+
+[node name="SlowTimeSfx" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("32_slowtime")
+volume_db = -4.0
+
+[node name="GreenSfx" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("33_green")
+volume_db = -2.0
 
 [node name="UI" type="CanvasLayer" parent="."]
 

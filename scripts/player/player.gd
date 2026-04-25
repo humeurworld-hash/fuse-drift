@@ -62,6 +62,7 @@ var _fuse_state: bool = false
 var _fuse_tween: Tween = null
 
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
+@onready var damage_sfx: AudioStreamPlayer2D = $DamageSfx
 
 func _ready() -> void:
 	add_to_group("player")
@@ -365,6 +366,7 @@ func take_hit(damage: int) -> void:
 	health = max(health, 0)
 	health_changed.emit(health)
 	_flash_red()
+	damage_sfx.play()
 	if health <= 0:
 		die()
 		return

@@ -33,6 +33,10 @@ const LEVEL_3_BG_TEXTURE_PATHS := [
 @onready var game_over_sfx: AudioStreamPlayer = $GameOverSfx
 @onready var level_complete_sfx: AudioStreamPlayer = $LevelCompleteSfx
 @onready var button_click_sfx: AudioStreamPlayer = $ButtonClickSfx
+@onready var fuse_sfx: AudioStreamPlayer = $FuseSfx
+@onready var jackpot_sfx: AudioStreamPlayer = $JackpotSfx
+@onready var slow_time_sfx: AudioStreamPlayer = $SlowTimeSfx
+@onready var green_sfx: AudioStreamPlayer = $GreenSfx
 @onready var ui_layer: CanvasLayer = $UI
 
 @onready var life_hub: TextureRect = $UI/LifeHub
@@ -897,6 +901,7 @@ func _activate_fuse_state() -> void:
 	_fuse_timer = FUSE_DURATION
 	_update_hazard_speed_mult()
 	player.enter_fuse_state()
+	fuse_sfx.play()
 	streak_mult_label.text = "FUSE"
 	streak_mult_label.modulate = Color(1.0, 0.72, 0.18, 1.0)
 	streak_mult_label.scale = Vector2(1.45, 1.45)
@@ -930,11 +935,13 @@ func _activate_slow_time() -> void:
 	slow_time_active = true
 	_slow_time_timer = SLOW_TIME_DURATION
 	_update_hazard_speed_mult()
+	slow_time_sfx.play()
 	_spawn_float_text("SLOW TIME!", player.global_position + Vector2(0, -90), 44, Color(0.80, 0.35, 1.00, 1.0))
 
 func _deactivate_slow_time() -> void:
 	slow_time_active = false
 	_update_hazard_speed_mult()
+	slow_time_sfx.stop()
 
 # ── Jackpot (Gold shard) ──────────────────────────────────────────────────────
 
@@ -942,6 +949,7 @@ func _activate_jackpot(world_pos: Vector2) -> void:
 	var refreshed := jackpot_active
 	jackpot_active = true
 	_jackpot_timer = JACKPOT_DURATION
+	jackpot_sfx.play()
 	var msg := "JACKPOT  EXT!" if refreshed else "JACKPOT!  ×%d" % JACKPOT_MULT
 	_spawn_float_text(msg, world_pos + Vector2(0, -90), 52, Color(1.00, 0.88, 0.15, 1.0))
 
@@ -951,6 +959,7 @@ func _deactivate_jackpot() -> void:
 # ── Green shard (heal / shield) ───────────────────────────────────────────────
 
 func _apply_green_effect(world_pos: Vector2) -> void:
+	green_sfx.play()
 	if player.health < player.max_health:
 		player.heal(1)
 		_spawn_float_text("+1 HP", world_pos + Vector2(0, -90), 42, Color(0.35, 1.00, 0.50, 1.0))
