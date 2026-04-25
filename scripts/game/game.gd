@@ -36,6 +36,8 @@ const LEVEL_3_BG_TEXTURE_PATHS := [
 @onready var score_hub: TextureRect = $UI/ScoreHub
 @onready var score_label: Label = $UI/ScoreLabel
 @onready var best_label: Label = $UI/BestLabel
+@onready var score_number: SpriteNumber = $UI/ScoreNumber
+@onready var best_number: SpriteNumber = $UI/BestNumber
 @onready var wave_label: Label = $UI/WaveLabel
 @onready var health_label: Label = $UI/HealthLabel
 @onready var pause_button: TextureButton = $UI/PauseButton
@@ -195,11 +197,15 @@ func _connect_signals() -> void:
 	level3_spawner.level_complete.connect(_on_level_complete)
 
 func _setup_ui() -> void:
+	score_label.visible = false   # replaced by ScoreNumber
+	best_label.visible = false    # replaced by BestNumber
 	score_label.text = "Score: 0"
 	best_label.text = "Best: 0"
 	wave_label.text = "Wave 1/4"
 	health_label.text = ""
 	score_hub.visible = false
+	score_number.visible = false
+	best_number.visible = false
 	life_hub.visible = false
 	score_label.visible = false
 	best_label.visible = false
@@ -322,8 +328,10 @@ func start_level_1() -> void:
 	pause_panel.visible = false
 	score_hub.visible = true
 	life_hub.visible = false
-	score_label.visible = true
-	best_label.visible = true
+	score_label.visible = false
+	score_number.visible = true
+	best_label.visible = false
+	best_number.visible = true
 	wave_label.visible = true
 	health_label.visible = false
 	pause_button.visible = true
@@ -354,8 +362,10 @@ func start_level_2() -> void:
 	pause_panel.visible = false
 	score_hub.visible = true
 	life_hub.visible = true
-	score_label.visible = true
-	best_label.visible = true
+	score_label.visible = false
+	score_number.visible = true
+	best_label.visible = false
+	best_number.visible = true
 	wave_label.visible = true
 	health_label.visible = true
 	pause_button.visible = true
@@ -387,8 +397,10 @@ func start_level_3() -> void:
 	pause_panel.visible = false
 	score_hub.visible = true
 	life_hub.visible = true
-	score_label.visible = true
-	best_label.visible = true
+	score_label.visible = false
+	score_number.visible = true
+	best_label.visible = false
+	best_number.visible = true
 	wave_label.visible = true
 	health_label.visible = true
 	pause_button.visible = true
@@ -406,9 +418,12 @@ func start_level_3() -> void:
 	update_hud()
 
 func update_hud() -> void:
-	score_label.text = "Score: %d" % int(floor(score))
+	var s := int(floor(score))
+	score_label.text = "Score: %d" % s
 	best_label.text = "Best: %d" % best_score
 	wave_label.text = "Wave %d/%d" % [current_wave, total_waves]
+	score_number.set_value(s)
+	best_number.set_value(best_score)
 
 func _update_health_display(hp: int) -> void:
 	var s := ""
@@ -664,6 +679,8 @@ func _on_player_hit() -> void:
 	streak_mult_label.visible = false
 	streak_sub_label.visible = false
 	score_hub.visible = false
+	score_number.visible = false
+	best_number.visible = false
 	life_hub.visible = false
 	wave_banner.visible = false
 	game_over_sfx.play()
@@ -691,6 +708,8 @@ func _on_level_complete() -> void:
 	streak_mult_label.visible = false
 	streak_sub_label.visible = false
 	score_hub.visible = false
+	score_number.visible = false
+	best_number.visible = false
 	life_hub.visible = false
 	wave_banner.visible = false
 	level_complete_sfx.play()

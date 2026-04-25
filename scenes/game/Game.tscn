@@ -22,6 +22,7 @@
 [ext_resource type="PackedScene" path="res://scenes/hazards/level 2 hazards/CanvasDrone3.tscn" id="9_drone3"]
 [ext_resource type="Texture2D" path="res://assets/ui/New UI/abillites/dash normal.png" id="23_dash"]
 [ext_resource type="Texture2D" path="res://assets/ui/New UI/abillites/pulse normal.png" id="24_pulse"]
+[ext_resource type="Script" path="res://scripts/ui/sprite_number.gd" id="25_sprnum"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_game")
@@ -155,6 +156,22 @@ texture_normal = ExtResource("22_pause")
 ignore_texture_size = true
 stretch_mode = 0
 visible = false
+
+[node name="ScoreNumber" type="Node2D" parent="UI"]
+visible = false
+position = Vector2(530.0, 98.0)
+script = ExtResource("25_sprnum")
+digit_height = 36.0
+max_digits = 5
+animate_on_change = true
+
+[node name="BestNumber" type="Node2D" parent="UI"]
+visible = false
+position = Vector2(530.0, 150.0)
+script = ExtResource("25_sprnum")
+digit_height = 26.0
+max_digits = 5
+animate_on_change = false
 
 [node name="StreakMultLabel" type="Label" parent="UI"]
 visible = false
