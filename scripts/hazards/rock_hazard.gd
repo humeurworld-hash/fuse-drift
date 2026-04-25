@@ -71,6 +71,11 @@ func _check_near_miss() -> void:
 	_near_miss_fired = true
 	var dist := absf(position.x - pl.position.x)
 	if dist < NEAR_MISS_RADIUS:
+		# Doppler whipcrack — pitch rises then drops as it whizzes past
+		var pt := fall_sound.create_tween()
+		pt.tween_property(fall_sound, "pitch_scale", 1.45, 0.06)
+		pt.tween_property(fall_sound, "pitch_scale", 0.72, 0.22) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		var game := get_tree().get_first_node_in_group("game")
 		if game and game.has_method("on_near_miss"):
 			game.on_near_miss(pl.global_position)

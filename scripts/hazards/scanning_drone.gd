@@ -45,13 +45,16 @@ func _process(delta: float) -> void:
 		Phase.SCAN:
 			_phase_timer -= delta
 			_beep_timer -= delta
+			# Progress 0→1 over SCAN_DURATION — drives pitch and tempo escalation
+			var scan_progress := clampf(1.0 - (_phase_timer / SCAN_DURATION), 0.0, 1.0)
 			if _beep_timer <= 0.0:
-				if _beep_toggle:
-					beep1.play()
-				else:
-					beep2.play()
+				var pitch := lerpf(0.65, 1.55, scan_progress)
+				var interval := lerpf(0.32, 0.07, scan_progress)
+				var sound: AudioStreamPlayer2D = beep1 if _beep_toggle else beep2
+				sound.pitch_scale = pitch
+				sound.play()
 				_beep_toggle = not _beep_toggle
-				_beep_timer = BEEP_INTERVAL
+				_beep_timer = interval
 			_track_player()
 			_update_aim_line(vp_h)
 			if _phase_timer <= 0.0:

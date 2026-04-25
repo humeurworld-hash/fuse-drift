@@ -20,14 +20,36 @@ var unlocked_levels: Array = [1]
 # ── DEV FLAG ── set false before shipping ──────────────────────────────────
 const DEV_UNLOCK_ALL := true
 
+const SETTINGS_SAVE := "user://settings.cfg"
+var music_volume: float = 1.0
+var sfx_volume:   float = 1.0
+
 func _ready() -> void:
 	_migrate_legacy_save()
 	_load_all_scores()
 	_load_unlocks()
+	load_audio_settings()
 	if DEV_UNLOCK_ALL:
 		for lvl in [1, 2, 3]:
 			if not lvl in unlocked_levels:
 				unlocked_levels.append(lvl)
+
+func load_audio_settings() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(SETTINGS_SAVE) == OK:
+		music_volume = cfg.get_value("audio", "music", 1.0)
+		sfx_volume   = cfg.get_value("audio", "sfx",   1.0)
+	apply_sfx_volume()
+
+func save_audio_settings() -> void:
+	var cfg := ConfigFile.new()
+	cfg.set_value("audio", "music", music_volume)
+	cfg.set_value("audio", "sfx",   sfx_volume)
+	cfg.save(SETTINGS_SAVE)
+
+func apply_sfx_volume() -> void:
+	var db := linear_to_db(maxf(sfx_volume, 0.001))
+	AudioServer.set_bus_volume_db(0, db)
 
 func is_unlocked(level: int) -> bool:
 	return level in unlocked_levels

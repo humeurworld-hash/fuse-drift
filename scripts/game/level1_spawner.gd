@@ -9,38 +9,62 @@ signal level_complete
 @export var shard_scene: PackedScene = preload("res://scenes/pickups/MourkShard.tscn")
 @export var side_padding: float = 64.0
 
+# palette weights sum to 100 for readability — higher = more common
 const WAVE_DATA := [
 	{
 		"duration": 22.0,
 		"rock_interval": 1.25,
-		"shard_interval": 2.30,
 		"rock_speed": 340.0,
-		"double_chance": 0.00
+		"double_chance": 0.00,
+		"shard_interval": 2.60,
+		"palette": {
+			MourkShard.ShardColor.TEAL:   91,
+			MourkShard.ShardColor.GREEN:   3,
+			MourkShard.ShardColor.ORANGE:  6,
+		}
 	},
 	{
 		"duration": 26.0,
 		"rock_interval": 1.00,
-		"shard_interval": 2.10,
 		"rock_speed": 420.0,
-		"double_chance": 0.18
+		"double_chance": 0.18,
+		"shard_interval": 2.20,
+		"palette": {
+			MourkShard.ShardColor.TEAL:   83,
+			MourkShard.ShardColor.GREEN:   3,
+			MourkShard.ShardColor.ORANGE: 11,
+			MourkShard.ShardColor.PURPLE:  3,
+		}
 	},
 	{
 		"duration": 30.0,
 		"rock_interval": 0.82,
-		"shard_interval": 1.90,
 		"rock_speed": 500.0,
-		"double_chance": 0.28
+		"double_chance": 0.28,
+		"shard_interval": 1.90,
+		"palette": {
+			MourkShard.ShardColor.TEAL:   75,
+			MourkShard.ShardColor.GREEN:   3,
+			MourkShard.ShardColor.ORANGE: 17,
+			MourkShard.ShardColor.PURPLE:  5,
+		}
 	},
 	{
 		"duration": 35.0,
 		"rock_interval": 0.65,
-		"shard_interval": 1.70,
 		"rock_speed": 590.0,
-		"double_chance": 0.40
+		"double_chance": 0.40,
+		"shard_interval": 1.65,
+		"palette": {
+			MourkShard.ShardColor.TEAL:   66,
+			MourkShard.ShardColor.GREEN:   2,
+			MourkShard.ShardColor.ORANGE: 22,
+			MourkShard.ShardColor.PURPLE:  7,
+			MourkShard.ShardColor.GOLD:    3,
+		}
 	}
 ]
 
-# Seconds of silence between waves — gives the banner time to breathe
 const WAVE_GAP := 1.8
 
 @onready var hazards_root: Node = $"../Hazards"
@@ -74,7 +98,6 @@ func _process(delta: float) -> void:
 	if not active:
 		return
 
-	# Between-wave silence
 	if _in_gap:
 		_gap_timer -= delta
 		if _gap_timer <= 0.0:
@@ -113,6 +136,18 @@ func _reset_timers_for_current_wave() -> void:
 	rock_timer = float(cfg["rock_interval"]) * 0.75
 	shard_timer = float(cfg["shard_interval"]) * 0.90
 
+func _pick_weighted_color(palette: Dictionary) -> MourkShard.ShardColor:
+	var total := 0
+	for w in palette.values():
+		total += int(w)
+	var roll := randi() % total
+	var accum := 0
+	for color in palette.keys():
+		accum += int(palette[color])
+		if roll < accum:
+			return color as MourkShard.ShardColor
+	return MourkShard.ShardColor.TEAL
+
 func _spawn_rock(cfg: Dictionary) -> void:
 	if rock_scene == null:
 		return
@@ -132,21 +167,12 @@ func _spawn_rock(cfg: Dictionary) -> void:
 		hazards_root.add_child(rock2)
 		rock2.speed_mult = hazard_speed_mult
 
-# Colors available per wave (escalates from common → rare as waves progress)
-const WAVE_SHARD_COLORS := [
-	[MourkShard.ShardColor.TEAL],                                       # wave 1
-	[MourkShard.ShardColor.TEAL,   MourkShard.ShardColor.GREEN],        # wave 2
-	[MourkShard.ShardColor.GREEN,  MourkShard.ShardColor.ORANGE],       # wave 3
-	[MourkShard.ShardColor.ORANGE, MourkShard.ShardColor.PURPLE],       # wave 4
-]
-
 func _spawn_shard(cfg: Dictionary) -> void:
 	if shard_scene == null:
 		return
 	var width := get_viewport().get_visible_rect().size.x
 	var shard: MourkShard = shard_scene.instantiate()
-	var palette: Array = WAVE_SHARD_COLORS[wave_index]
-	shard.set_color(palette[randi() % palette.size()])
+	shard.set_color(_pick_weighted_color(cfg["palette"]))
 	shard.position = Vector2(randf_range(side_padding, width - side_padding), -96.0)
-	shard.speed = maxf(250.0, float(cfg["rock_speed"]) - 110.0)
+	shard.speed = 230.0 + randf_range(-15.0, 25.0)
 	pickups_root.add_child(shard)

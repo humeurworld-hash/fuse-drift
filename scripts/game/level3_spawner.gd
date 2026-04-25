@@ -11,34 +11,63 @@ signal level_complete
 @export var shard_scene: PackedScene = preload("res://scenes/pickups/MourkShard.tscn")
 @export var side_padding: float = 72.0
 
+# palette weights sum to 100 for readability — level 3 is endgame, gold flows freely
 const WAVE_DATA := [
 	{
 		"duration": 27.0,
 		"interval": 2.0,
-		"shard_interval": 2.6,
 		"speed": 280.0,
-		"tiers": [1, 1, 1, 2]
+		"tiers": [1, 1, 1, 2],
+		"shard_interval": 3.00,
+		"palette": {
+			MourkShard.ShardColor.TEAL:   55,
+			MourkShard.ShardColor.GREEN:   2,
+			MourkShard.ShardColor.ORANGE: 28,
+			MourkShard.ShardColor.PURPLE: 12,
+			MourkShard.ShardColor.GOLD:    3,
+		}
 	},
 	{
 		"duration": 32.0,
 		"interval": 1.6,
-		"shard_interval": 2.2,
 		"speed": 340.0,
-		"tiers": [1, 1, 2, 2]
+		"tiers": [1, 1, 2, 2],
+		"shard_interval": 2.50,
+		"palette": {
+			MourkShard.ShardColor.TEAL:   42,
+			MourkShard.ShardColor.GREEN:   2,
+			MourkShard.ShardColor.ORANGE: 28,
+			MourkShard.ShardColor.PURPLE: 20,
+			MourkShard.ShardColor.GOLD:    8,
+		}
 	},
 	{
 		"duration": 37.0,
 		"interval": 1.2,
-		"shard_interval": 1.8,
 		"speed": 410.0,
-		"tiers": [1, 2, 2, 3]
+		"tiers": [1, 2, 2, 3],
+		"shard_interval": 2.00,
+		"palette": {
+			MourkShard.ShardColor.TEAL:   28,
+			MourkShard.ShardColor.GREEN:   1,
+			MourkShard.ShardColor.ORANGE: 26,
+			MourkShard.ShardColor.PURPLE: 28,
+			MourkShard.ShardColor.GOLD:   17,
+		}
 	},
 	{
 		"duration": 43.0,
 		"interval": 1.0,
-		"shard_interval": 1.6,
 		"speed": 480.0,
-		"tiers": [1, 2, 3, 3, 3]
+		"tiers": [1, 2, 3, 3, 3],
+		"shard_interval": 1.60,
+		"palette": {
+			MourkShard.ShardColor.TEAL:   12,
+			MourkShard.ShardColor.GREEN:   1,
+			MourkShard.ShardColor.ORANGE: 22,
+			MourkShard.ShardColor.PURPLE: 35,
+			MourkShard.ShardColor.GOLD:   30,
+		}
 	}
 ]
 
@@ -111,7 +140,19 @@ func _process(delta: float) -> void:
 func _reset_timers() -> void:
 	var cfg: Dictionary = WAVE_DATA[wave_index]
 	clock_timer = float(cfg["interval"]) * 0.7
-	shard_timer = float(cfg["shard_interval"]) * 0.9
+	shard_timer = float(cfg["shard_interval"]) * 0.90
+
+func _pick_weighted_color(palette: Dictionary) -> MourkShard.ShardColor:
+	var total := 0
+	for w in palette.values():
+		total += int(w)
+	var roll := randi() % total
+	var accum := 0
+	for color in palette.keys():
+		accum += int(palette[color])
+		if roll < accum:
+			return color as MourkShard.ShardColor
+	return MourkShard.ShardColor.TEAL
 
 func _spawn_clock(cfg: Dictionary) -> void:
 	var width := get_viewport().get_visible_rect().size.x
@@ -134,21 +175,12 @@ func _spawn_clock(cfg: Dictionary) -> void:
 	hazards_root.add_child(clock)
 	clock.speed_mult = hazard_speed_mult
 
-# Level 3 is high-end — orange into purple and gold, pure gold in final wave
-const WAVE_SHARD_COLORS := [
-	[MourkShard.ShardColor.ORANGE, MourkShard.ShardColor.PURPLE],      # wave 1
-	[MourkShard.ShardColor.PURPLE, MourkShard.ShardColor.GOLD],        # wave 2
-	[MourkShard.ShardColor.PURPLE, MourkShard.ShardColor.GOLD],        # wave 3
-	[MourkShard.ShardColor.GOLD],                                       # wave 4
-]
-
 func _spawn_shard(cfg: Dictionary) -> void:
 	if shard_scene == null:
 		return
 	var width := get_viewport().get_visible_rect().size.x
 	var shard: MourkShard = shard_scene.instantiate()
-	var palette: Array = WAVE_SHARD_COLORS[wave_index]
-	shard.set_color(palette[randi() % palette.size()])
+	shard.set_color(_pick_weighted_color(cfg["palette"]))
 	shard.position = Vector2(randf_range(side_padding, width - side_padding), -96.0)
-	shard.speed = maxf(200.0, float(cfg["speed"]) - 140.0)
+	shard.speed = 230.0 + randf_range(-15.0, 25.0)
 	pickups_root.add_child(shard)

@@ -63,9 +63,11 @@ var _fuse_tween: Tween = null
 
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var damage_sfx: AudioStreamPlayer2D = $DamageSfx
+@onready var audio_listener: AudioListener2D = $AudioListener2D
 
 func _ready() -> void:
 	add_to_group("player")
+	audio_listener.make_current()
 	screen_size = get_viewport_rect().size
 	position = Vector2(screen_size.x * 0.5, screen_size.y * fixed_y_ratio)
 	target_x = position.x

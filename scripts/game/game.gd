@@ -97,9 +97,25 @@ const BASE_SHARD_PTS := 12
 var fuse_state_active: bool = false
 var hazard_speed_mult: float = 1.0
 var _fuse_timer: float = 0.0
-const FUSE_DURATION := 8.0
-const FUSE_HAZARD_MULT := 0.55
+const FUSE_DURATION := 5.0          # short and punchy
+const FUSE_HAZARD_MULT := 0.35      # hazards crawl — very dramatic
 const FUSE_STREAK_TRIGGER := 10
+
+# Fuse vignette — built once, reused each activation
+var _fuse_overlay: ColorRect = null
+var _fuse_borders: Array[ColorRect] = []
+var _fuse_pulse_tween: Tween = null
+
+# Active-effect HUD pills (jackpot + slow-time countdown indicators)
+const PILL_W := 210.0
+const PILL_H := 44.0
+const PILL_BAR_H := 5.0
+var _jackpot_pill: Panel = null
+var _jackpot_pill_label: Label = null
+var _jackpot_pill_bar: ColorRect = null
+var _slow_pill: Panel = null
+var _slow_pill_label: Label = null
+var _slow_pill_bar: ColorRect = null
 
 # Jackpot — Gold shard, ×3 multiplier for 8s
 var jackpot_active: bool = false
@@ -118,6 +134,9 @@ func _ready() -> void:
 	_setup_ui()
 	_apply_ui_theme()
 	_connect_signals()
+	_build_fuse_vignette()
+	_build_effect_huds()
+	music_player.volume_db = linear_to_db(maxf(Global.music_volume, 0.001))
 	match Global.selected_level:
 		1: start_level_1()
 		2: start_level_2()
@@ -140,11 +159,13 @@ func _process(delta: float) -> void:
 	# Jackpot countdown
 	if jackpot_active:
 		_jackpot_timer -= delta
+		_update_jackpot_pill()
 		if _jackpot_timer <= 0.0:
 			_deactivate_jackpot()
 	# Slow-time countdown
 	if slow_time_active:
 		_slow_time_timer -= delta
+		_update_slow_pill()
 		if _slow_time_timer <= 0.0:
 			_deactivate_slow_time()
 
@@ -375,6 +396,8 @@ func start_level_1() -> void:
 	_jackpot_timer = 0.0
 	slow_time_active = false
 	_slow_time_timer = 0.0
+	if _jackpot_pill != null: _jackpot_pill.modulate = Color(1, 1, 1, 0)
+	if _slow_pill   != null: _slow_pill.modulate   = Color(1, 1, 1, 0)
 	level1_spawner.hazard_speed_mult = 1.0
 	level2_spawner.hazard_speed_mult = 1.0
 	level3_spawner.hazard_speed_mult = 1.0
@@ -423,6 +446,8 @@ func start_level_2() -> void:
 	_jackpot_timer = 0.0
 	slow_time_active = false
 	_slow_time_timer = 0.0
+	if _jackpot_pill != null: _jackpot_pill.modulate = Color(1, 1, 1, 0)
+	if _slow_pill   != null: _slow_pill.modulate   = Color(1, 1, 1, 0)
 	level1_spawner.hazard_speed_mult = 1.0
 	level2_spawner.hazard_speed_mult = 1.0
 	level3_spawner.hazard_speed_mult = 1.0
@@ -472,6 +497,8 @@ func start_level_3() -> void:
 	_jackpot_timer = 0.0
 	slow_time_active = false
 	_slow_time_timer = 0.0
+	if _jackpot_pill != null: _jackpot_pill.modulate = Color(1, 1, 1, 0)
+	if _slow_pill   != null: _slow_pill.modulate   = Color(1, 1, 1, 0)
 	level1_spawner.hazard_speed_mult = 1.0
 	level2_spawner.hazard_speed_mult = 1.0
 	level3_spawner.hazard_speed_mult = 1.0
@@ -902,11 +929,13 @@ func _activate_fuse_state() -> void:
 	_update_hazard_speed_mult()
 	player.enter_fuse_state()
 	fuse_sfx.play()
+	_show_fuse_vignette()
+	_tint_hazards_fuse(true)
 	streak_mult_label.text = "FUSE"
-	streak_mult_label.modulate = Color(1.0, 0.72, 0.18, 1.0)
-	streak_mult_label.scale = Vector2(1.45, 1.45)
+	streak_mult_label.modulate = Color(0.18, 1.0, 0.90, 1.0)
+	streak_mult_label.scale = Vector2(1.55, 1.55)
 	var tween := streak_mult_label.create_tween()
-	tween.tween_property(streak_mult_label, "scale", Vector2.ONE, 0.42) \
+	tween.tween_property(streak_mult_label, "scale", Vector2.ONE, 0.48) \
 		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	_show_fuse_banner()
 
@@ -914,6 +943,8 @@ func _deactivate_fuse_state() -> void:
 	fuse_state_active = false
 	_update_hazard_speed_mult()
 	player.exit_fuse_state()
+	_hide_fuse_vignette()
+	_tint_hazards_fuse(false)
 	_animate_streak_collect()
 
 func _update_fuse_countdown() -> void:
@@ -937,11 +968,13 @@ func _activate_slow_time() -> void:
 	_update_hazard_speed_mult()
 	slow_time_sfx.play()
 	_spawn_float_text("SLOW TIME!", player.global_position + Vector2(0, -90), 44, Color(0.80, 0.35, 1.00, 1.0))
+	_show_pill(_slow_pill)
 
 func _deactivate_slow_time() -> void:
 	slow_time_active = false
 	_update_hazard_speed_mult()
 	slow_time_sfx.stop()
+	_hide_pill(_slow_pill)
 
 # ── Jackpot (Gold shard) ──────────────────────────────────────────────────────
 
@@ -952,9 +985,11 @@ func _activate_jackpot(world_pos: Vector2) -> void:
 	jackpot_sfx.play()
 	var msg := "JACKPOT  EXT!" if refreshed else "JACKPOT!  ×%d" % JACKPOT_MULT
 	_spawn_float_text(msg, world_pos + Vector2(0, -90), 52, Color(1.00, 0.88, 0.15, 1.0))
+	_show_pill(_jackpot_pill)
 
 func _deactivate_jackpot() -> void:
 	jackpot_active = false
+	_hide_pill(_jackpot_pill)
 
 # ── Green shard (heal / shield) ───────────────────────────────────────────────
 
@@ -966,6 +1001,174 @@ func _apply_green_effect(world_pos: Vector2) -> void:
 	else:
 		player.grant_shield(2.5)
 		_spawn_float_text("SHIELD!", world_pos + Vector2(0, -90), 42, Color(0.35, 1.00, 0.50, 1.0))
+
+# ── Active-effect HUD pills ───────────────────────────────────────────────────
+
+func _build_effect_huds() -> void:
+	var vp := get_viewport().get_visible_rect().size
+	var x := 16.0
+	var y1 := vp.y * 0.36
+	var y2 := y1 + PILL_H + 8.0
+
+	var jp := _make_pill(Color(1.00, 0.85, 0.10, 1.0))
+	_jackpot_pill       = jp["panel"]
+	_jackpot_pill_label = jp["label"]
+	_jackpot_pill_bar   = jp["bar"]
+	_jackpot_pill.position = Vector2(x, y1)
+	ui_layer.add_child(_jackpot_pill)
+
+	var sp := _make_pill(Color(0.78, 0.30, 1.00, 1.0))
+	_slow_pill       = sp["panel"]
+	_slow_pill_label = sp["label"]
+	_slow_pill_bar   = sp["bar"]
+	_slow_pill.position = Vector2(x, y2)
+	ui_layer.add_child(_slow_pill)
+
+func _make_pill(col: Color) -> Dictionary:
+	var panel := Panel.new()
+	panel.custom_minimum_size = Vector2(PILL_W, PILL_H)
+	panel.size = Vector2(PILL_W, PILL_H)
+	panel.modulate = Color(1, 1, 1, 0)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.04, 0.04, 0.10, 0.88)
+	style.border_color = col
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(8)
+	panel.add_theme_stylebox_override("panel", style)
+
+	var lbl := Label.new()
+	lbl.add_theme_font_size_override("font_size", 22)
+	lbl.add_theme_color_override("font_color", col)
+	lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	lbl.add_theme_constant_override("shadow_offset_x", 1)
+	lbl.add_theme_constant_override("shadow_offset_y", 2)
+	lbl.position = Vector2(10, 5)
+	lbl.size = Vector2(PILL_W - 14, PILL_H - PILL_BAR_H - 5)
+	panel.add_child(lbl)
+
+	var bar := ColorRect.new()
+	bar.color = col
+	bar.position = Vector2(0, PILL_H - PILL_BAR_H)
+	bar.size = Vector2(PILL_W, PILL_BAR_H)
+	panel.add_child(bar)
+
+	return {"panel": panel, "label": lbl, "bar": bar}
+
+func _show_pill(pill: Panel) -> void:
+	if pill == null:
+		return
+	var t := pill.create_tween()
+	t.tween_property(pill, "modulate", Color(1, 1, 1, 1), 0.20) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+func _hide_pill(pill: Panel) -> void:
+	if pill == null:
+		return
+	var t := pill.create_tween()
+	t.tween_property(pill, "modulate", Color(1, 1, 1, 0), 0.30) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+
+func _update_jackpot_pill() -> void:
+	if _jackpot_pill == null:
+		return
+	var ratio := clampf(_jackpot_timer / JACKPOT_DURATION, 0.0, 1.0)
+	_jackpot_pill_label.text = "✦ JACKPOT  ×%d    %.1fs" % [JACKPOT_MULT, maxf(_jackpot_timer, 0.0)]
+	_jackpot_pill_bar.size.x = PILL_W * ratio
+	var urgent := _jackpot_timer < 2.0
+	_jackpot_pill_label.add_theme_color_override("font_color",
+		Color(1.0, 0.35, 0.08, 1.0) if urgent else Color(1.00, 0.85, 0.10, 1.0))
+
+func _update_slow_pill() -> void:
+	if _slow_pill == null:
+		return
+	var ratio := clampf(_slow_time_timer / SLOW_TIME_DURATION, 0.0, 1.0)
+	_slow_pill_label.text = "◈ SLOW TIME    %.1fs" % maxf(_slow_time_timer, 0.0)
+	_slow_pill_bar.size.x = PILL_W * ratio
+	var urgent := _slow_time_timer < 1.0
+	_slow_pill_label.add_theme_color_override("font_color",
+		Color(1.0, 0.45, 1.0, 1.0) if urgent else Color(0.78, 0.30, 1.00, 1.0))
+
+# ── Fuse vignette — screen-edge glow + overlay + activation flash ─────────────
+
+func _build_fuse_vignette() -> void:
+	var vp := get_viewport().get_visible_rect().size
+	const TEAL := Color(0.18, 0.95, 0.85, 0.0)
+	const BW   := 60.0   # border thickness in pixels
+
+	# Full-screen teal tint (very subtle, pulses during fuse)
+	_fuse_overlay = ColorRect.new()
+	_fuse_overlay.color = Color(0.12, 0.88, 0.80, 0.0)
+	_fuse_overlay.size = vp
+	_fuse_overlay.z_index = -10
+	ui_layer.add_child(_fuse_overlay)
+
+	# 4 edge borders — top, bottom, left, right
+	var rects := [
+		Rect2(0,           0,           vp.x, BW  ),
+		Rect2(0,           vp.y - BW,   vp.x, BW  ),
+		Rect2(0,           0,           BW,   vp.y),
+		Rect2(vp.x - BW,  0,           BW,   vp.y),
+	]
+	for r in rects:
+		var cr := ColorRect.new()
+		cr.color = TEAL
+		cr.position = r.position
+		cr.size = r.size
+		cr.z_index = -9
+		ui_layer.add_child(cr)
+		_fuse_borders.append(cr)
+
+func _show_fuse_vignette() -> void:
+	# Kill any leftover pulse
+	if _fuse_pulse_tween != null and _fuse_pulse_tween.is_valid():
+		_fuse_pulse_tween.kill()
+		_fuse_pulse_tween = null
+
+	var vp := get_viewport().get_visible_rect().size
+
+	# 1. Bright teal flash — full screen, fades out fast
+	var flash := ColorRect.new()
+	flash.color = Color(0.35, 1.00, 0.90, 0.60)
+	flash.size = vp
+	flash.z_index = -8
+	ui_layer.add_child(flash)
+	var ft := flash.create_tween()
+	ft.tween_property(flash, "color:a", 0.0, 0.38).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	ft.tween_callback(flash.queue_free)
+
+	# 2. Fade in ambient overlay
+	var ot := _fuse_overlay.create_tween()
+	ot.tween_property(_fuse_overlay, "color:a", 0.08, 0.28).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+	# 3. Fade in edge borders
+	for b: ColorRect in _fuse_borders:
+		var bt: Tween = b.create_tween()
+		bt.tween_property(b, "color:a", 0.55, 0.22).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+	# 4. Start slow pulse on overlay
+	_fuse_pulse_tween = _fuse_overlay.create_tween().set_loops()
+	_fuse_pulse_tween.tween_property(_fuse_overlay, "color:a", 0.15, 0.65).set_trans(Tween.TRANS_SINE)
+	_fuse_pulse_tween.tween_property(_fuse_overlay, "color:a", 0.04, 0.65).set_trans(Tween.TRANS_SINE)
+
+func _hide_fuse_vignette() -> void:
+	if _fuse_pulse_tween != null and _fuse_pulse_tween.is_valid():
+		_fuse_pulse_tween.kill()
+		_fuse_pulse_tween = null
+	# Fade out overlay
+	var ot := _fuse_overlay.create_tween()
+	ot.tween_property(_fuse_overlay, "color:a", 0.0, 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	# Fade out borders
+	for b: ColorRect in _fuse_borders:
+		var bt: Tween = b.create_tween()
+		bt.tween_property(b, "color:a", 0.0, 0.38).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+
+func _tint_hazards_fuse(active: bool) -> void:
+	var target := Color(0.55, 1.00, 0.95, 1.0) if active else Color(1.0, 1.0, 1.0, 1.0)
+	for h in get_tree().get_nodes_in_group("hazard"):
+		if is_instance_valid(h):
+			var ht: Tween = h.create_tween()
+			ht.tween_property(h, "modulate", target, 0.30) \
+				.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 func _show_fuse_banner() -> void:
 	# ── Character sprite — slams in from scale 0, bounces, then fades ─────────
