@@ -1029,6 +1029,7 @@ func _make_pill(col: Color) -> Dictionary:
 	panel.custom_minimum_size = Vector2(PILL_W, PILL_H)
 	panel.size = Vector2(PILL_W, PILL_H)
 	panel.modulate = Color(1, 1, 1, 0)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.04, 0.04, 0.10, 0.88)
 	style.border_color = col
@@ -1100,6 +1101,7 @@ func _build_fuse_vignette() -> void:
 	_fuse_overlay.color = Color(0.12, 0.88, 0.80, 0.0)
 	_fuse_overlay.size = vp
 	_fuse_overlay.z_index = -10
+	_fuse_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui_layer.add_child(_fuse_overlay)
 
 	# 4 edge borders — top, bottom, left, right
@@ -1115,6 +1117,7 @@ func _build_fuse_vignette() -> void:
 		cr.position = r.position
 		cr.size = r.size
 		cr.z_index = -9
+		cr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		ui_layer.add_child(cr)
 		_fuse_borders.append(cr)
 
@@ -1131,6 +1134,7 @@ func _show_fuse_vignette() -> void:
 	flash.color = Color(0.35, 1.00, 0.90, 0.60)
 	flash.size = vp
 	flash.z_index = -8
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui_layer.add_child(flash)
 	var ft := flash.create_tween()
 	ft.tween_property(flash, "color:a", 0.0, 0.38).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)

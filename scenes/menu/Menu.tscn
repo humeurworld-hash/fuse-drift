@@ -76,7 +76,7 @@ offset_top = 994.0
 offset_right = 630.0
 offset_bottom = 1022.0
 horizontal_alignment = 1
-text = "Level 2 — The Canvas"
+text = "Level 2 — The Verge"
 theme_override_font_sizes/font_size = 18
 theme_override_colors/font_color = Color(0.75, 0.75, 0.75, 0.9)
 

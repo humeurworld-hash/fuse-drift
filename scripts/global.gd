@@ -18,7 +18,7 @@ const UNLOCK_SAVE := "user://mourk_unlocks.save"
 var unlocked_levels: Array = [1]
 
 # ── DEV FLAG ── set false before shipping ──────────────────────────────────
-const DEV_UNLOCK_ALL := true
+const DEV_UNLOCK_ALL := false
 
 const SETTINGS_SAVE := "user://settings.cfg"
 var music_volume: float = 1.0
