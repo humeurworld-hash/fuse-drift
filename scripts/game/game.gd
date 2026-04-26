@@ -548,8 +548,15 @@ func update_hud() -> void:
 func _update_health_display(hp: int) -> void:
 	var s := ""
 	for i in player.max_health:
-		s += "♥ " if i < hp else "· "
+		s += "♥  " if i < hp else "·  "
 	health_label.text = s.strip_edges()
+	# Keep hearts large and vibrant; lost hearts dim
+	var alive_col := Color(1.00, 0.30, 0.38, 1.0)  # vivid red-pink
+	var empty_col := Color(0.40, 0.40, 0.45, 0.55)  # dim grey
+	# Lerp colour toward empty the more hp is lost
+	var ratio := float(hp) / float(max(player.max_health, 1))
+	health_label.modulate = alive_col.lerp(empty_col, 1.0 - ratio)
+	health_label.add_theme_font_size_override("font_size", 34)
 
 func clear_run_objects() -> void:
 	for child in hazards_root.get_children():
@@ -572,6 +579,30 @@ func _on_wave_started(wave: int, total: int) -> void:
 	total_waves = total
 	update_hud()
 	_hide_wave_banner()
+	_flash_wave_start(wave)
+
+func _flash_wave_start(wave: int) -> void:
+	# Colour escalates per wave: teal → orange → purple → gold
+	var colors: Array[Color] = [
+		Color(0.20, 0.90, 0.85, 0.25),  # wave 1 — teal
+		Color(0.95, 0.52, 0.10, 0.28),  # wave 2 — orange
+		Color(0.65, 0.20, 0.95, 0.28),  # wave 3 — purple
+		Color(1.00, 0.82, 0.10, 0.32),  # wave 4 — gold
+	]
+	var idx := clamp(wave - 1, 0, colors.size() - 1)
+	var flash := ColorRect.new()
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.color = colors[idx]
+	flash.size = get_viewport_rect().size
+	flash.position = Vector2.ZERO
+	flash.modulate = Color(1, 1, 1, 0)
+	ui_layer.add_child(flash)
+	var tween := flash.create_tween()
+	tween.tween_property(flash, "modulate", Color(1, 1, 1, 1), 0.14) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(flash, "modulate", Color(1, 1, 1, 0), 0.55) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_callback(flash.queue_free)
 
 func _on_wave_cleared(cleared_wave: int) -> void:
 	score += 60.0
@@ -810,6 +841,16 @@ func _spawn_float_text(text: String, world_pos: Vector2,
 func _on_health_changed(new_health: int) -> void:
 	_update_health_display(new_health)
 	_screen_shake(6.0, 0.22)
+	# Pulse health label — scale + red flash on damage
+	if is_instance_valid(health_label) and health_label.visible:
+		health_label.modulate = Color(1.0, 0.18, 0.18, 1.0)
+		health_label.scale = Vector2(1.45, 1.45)
+		var tween := health_label.create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(health_label, "scale", Vector2.ONE, 0.50) \
+			.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+		tween.tween_property(health_label, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.50) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 func _on_player_hit() -> void:
 	if state != GameState.PLAYING:

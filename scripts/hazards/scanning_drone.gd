@@ -13,6 +13,7 @@ var _target_x: float = 0.0
 
 var _aim_line: Line2D = null
 var _fire_poly: Polygon2D = null
+var _fire_sprite: Node2D = null  # TextureRect/Sprite2D beam if art exists
 
 var _beep_timer: float = 0.0
 var _beep_toggle: bool = false
@@ -23,6 +24,14 @@ const SCAN_DURATION      := 1.4   # seconds the aim beam tracks the player
 const FIRE_DURATION      := 0.38  # seconds the fire beam is visible
 const BEAM_WIDTH         := 72.0  # width of the fire column
 
+# Drop your beam PNG in any of these locations and it will be auto-loaded
+const BEAM_TEXTURE_PATHS := [
+	"res://assets/art/level2/laser_beam.png",
+	"res://scenes/hazards/level 2 hazards/laser_beam.png",
+	"res://assets/ui/laser_beam.png",
+	"res://scenes/hazards/beam.png",
+]
+
 @onready var beep1: AudioStreamPlayer2D = $Beep1
 @onready var beep2: AudioStreamPlayer2D = $Beep2
 
@@ -32,6 +41,11 @@ func set_speed_mult(mult: float) -> void:
 func _ready() -> void:
 	add_to_group("hazard")
 	add_to_group("drone")
+	# Entrance pop — scale in from zero
+	scale = Vector2.ZERO
+	var spawn_tween := create_tween()
+	spawn_tween.tween_property(self, "scale", Vector2.ONE, 0.32) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _process(delta: float) -> void:
 	var vp_h := get_viewport().get_visible_rect().size.y
@@ -102,18 +116,67 @@ func _begin_fire(vp_h: float) -> void:
 	if is_instance_valid(_aim_line):
 		_aim_line.queue_free()
 		_aim_line = null
-	# Full-height fire column at the locked X
+
 	var hw := BEAM_WIDTH * 0.5
-	_fire_poly = Polygon2D.new()
-	_fire_poly.color = Color(1.0, 0.12, 0.12, 0.68)
-	_fire_poly.polygon = PackedVector2Array([
-		Vector2(_target_x - hw, 0.0),
-		Vector2(_target_x + hw, 0.0),
-		Vector2(_target_x + hw, vp_h),
-		Vector2(_target_x - hw, vp_h),
+
+	# ── Try texture beam first ────────────────────────────────────────────────
+	var tex_loaded := false
+	for path in BEAM_TEXTURE_PATHS:
+		if not ResourceLoader.exists(path):
+			continue
+		var tex := load(path) as Texture2D
+		if tex == null:
+			continue
+		var spr := Sprite2D.new()
+		spr.texture = tex
+		spr.centered = true
+		spr.position = Vector2(_target_x, vp_h * 0.5)
+		var tsize := tex.get_size()
+		spr.scale = Vector2(BEAM_WIDTH / tsize.x, vp_h / tsize.y)
+		# Animate beam width expanding from zero
+		spr.scale.x = 0.0
+		get_parent().add_child(spr)
+		var bt := spr.create_tween()
+		bt.tween_property(spr, "scale:x", BEAM_WIDTH / tsize.x, 0.10) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		_fire_sprite = spr
+		tex_loaded = true
+		break
+
+	# ── Fallback: Polygon2D colour column ────────────────────────────────────
+	if not tex_loaded:
+		_fire_poly = Polygon2D.new()
+		_fire_poly.color = Color(1.0, 0.12, 0.12, 0.68)
+		_fire_poly.polygon = PackedVector2Array([
+			Vector2(_target_x - hw, 0.0),
+			Vector2(_target_x + hw, 0.0),
+			Vector2(_target_x + hw, vp_h),
+			Vector2(_target_x - hw, vp_h),
+		])
+		# Animate in with a quick alpha pop
+		_fire_poly.modulate = Color(1, 1, 1, 0)
+		get_parent().add_child(_fire_poly)
+		var ft: Tween = _fire_poly.create_tween()
+		ft.tween_property(_fire_poly, "modulate:a", 1.0, 0.10) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+	# ── Impact flash (Polygon2D so it lives in world space like the beam) ────
+	var vp_w := get_viewport_rect().size.x
+	var flash_poly := Polygon2D.new()
+	flash_poly.color = Color(1.0, 0.25, 0.18, 0.38)
+	flash_poly.polygon = PackedVector2Array([
+		Vector2(0.0,  0.0),
+		Vector2(vp_w, 0.0),
+		Vector2(vp_w, vp_h),
+		Vector2(0.0,  vp_h),
 	])
-	get_parent().add_child(_fire_poly)
-	# Check if player is inside the beam right now
+	get_parent().add_child(flash_poly)
+	var ft2: Tween = flash_poly.create_tween()
+	ft2.tween_property(flash_poly, "modulate:a", 0.0, 0.22) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	ft2.tween_callback(flash_poly.queue_free)
+
+	# ── Hit check ────────────────────────────────────────────────────────────
 	var players := get_tree().get_nodes_in_group("player")
 	for p in players:
 		if is_instance_valid(p) and not p.get("invincible") and p.get("alive"):
@@ -127,6 +190,11 @@ func _end_fire() -> void:
 		tween.tween_property(_fire_poly, "modulate:a", 0.0, 0.20)
 		tween.tween_callback(_fire_poly.queue_free)
 		_fire_poly = null
+	if is_instance_valid(_fire_sprite):
+		var tween2 := _fire_sprite.create_tween()
+		tween2.tween_property(_fire_sprite, "modulate:a", 0.0, 0.20)
+		tween2.tween_callback(_fire_sprite.queue_free)
+		_fire_sprite = null
 	_phase = Phase.RESUME
 
 func _cleanup() -> void:
@@ -134,6 +202,8 @@ func _cleanup() -> void:
 		_aim_line.queue_free()
 	if is_instance_valid(_fire_poly):
 		_fire_poly.queue_free()
+	if is_instance_valid(_fire_sprite):
+		_fire_sprite.queue_free()
 
 func flash_hit() -> void:
 	var tween := create_tween()

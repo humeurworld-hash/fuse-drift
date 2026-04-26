@@ -10,6 +10,10 @@ var _start_x: float = 0.0
 var _swoop_dir: float = 1.0
 var speed_mult: float = 1.0
 
+# Near-miss — fires once when the drone crosses the player's Y level
+const NEAR_MISS_RADIUS := 90.0
+var _near_miss_fired := false
+
 func set_speed_mult(mult: float) -> void:
 	speed_mult = mult
 
@@ -19,6 +23,11 @@ func _ready() -> void:
 	_start_x = position.x
 	_swoop_dir = 1.0 if randf() > 0.5 else -1.0
 	_time = randf_range(0.0, TAU)
+	# Spawn scale-in pop
+	scale = Vector2.ZERO
+	var spawn_tween := create_tween()
+	spawn_tween.tween_property(self, "scale", Vector2.ONE, 0.28) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -50,8 +59,27 @@ func _process(delta: float) -> void:
 
 	position.x = clampf(position.x, 48.0, vp_width - 48.0)
 
+	_check_near_miss()
+
 	if position.y > get_viewport().get_visible_rect().size.y + 200.0:
 		queue_free()
+
+func _check_near_miss() -> void:
+	if _near_miss_fired:
+		return
+	var players := get_tree().get_nodes_in_group("player")
+	if players.is_empty():
+		return
+	var pl: Node2D = players[0]
+	# Fire once when the drone passes the player's Y level (moving downward past them)
+	if position.y < pl.position.y:
+		return
+	_near_miss_fired = true
+	var dist := absf(position.x - pl.position.x)
+	if dist < NEAR_MISS_RADIUS:
+		var game := get_tree().get_first_node_in_group("game")
+		if game and game.has_method("on_near_miss"):
+			game.on_near_miss(pl.global_position)
 
 func flash_hit() -> void:
 	var tween := create_tween()
