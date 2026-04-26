@@ -343,6 +343,7 @@ func _update_bg_parallax(delta: float) -> void:
 
 func _show_start_screen() -> void:
 	get_tree().paused = false
+	Global.carry_score = 0.0   # fresh run if they go through level select
 	Transition.fade_to("res://scenes/menu/Menu.tscn")
 
 func _on_restart_pressed() -> void:
@@ -388,6 +389,7 @@ func start_level_1() -> void:
 	best_score = Global.get_best(1)
 	state = GameState.PLAYING
 	score = 0.0
+	Global.carry_score = 0.0
 	shard_streak = 0
 	fuse_state_active = false
 	hazard_speed_mult = 1.0
@@ -437,7 +439,7 @@ func start_level_2() -> void:
 	current_level = 2
 	best_score = Global.get_best(2)
 	state = GameState.PLAYING
-	score = 0.0
+	score = Global.carry_score
 	shard_streak = 0
 	fuse_state_active = false
 	hazard_speed_mult = 1.0
@@ -488,7 +490,7 @@ func start_level_3() -> void:
 	current_level = 3
 	best_score = Global.get_best(3)
 	state = GameState.PLAYING
-	score = 0.0
+	score = Global.carry_score
 	shard_streak = 0
 	fuse_state_active = false
 	hazard_speed_mult = 1.0
@@ -884,13 +886,20 @@ func _on_level_complete() -> void:
 		Global.unlock_level(3)
 	var final_score := int(floor(score))
 	_update_best_score(final_score)
+	var incoming_carry := int(Global.carry_score)   # what arrived from previous level
+	Global.carry_score = score                      # pass full total into next level
 	var next_line: String
 	match current_level:
 		1: next_line = "Level 2 — The Verge awaits!"
 		2: next_line = "Level 3 — The Loops awaits!"
 		_: next_line = "More levels coming soon."
 	clear_title.text = "LEVEL %d  CLEAR" % current_level
-	clear_summary.text = "Score   %d\nBest    %d\n\n%s" % [final_score, best_score, next_line]
+	if incoming_carry > 0:
+		var earned := final_score - incoming_carry
+		clear_summary.text = "This level   +%d\nCarried          %d\nTotal            %d\nBest             %d\n\n%s" % [
+			earned, incoming_carry, final_score, best_score, next_line]
+	else:
+		clear_summary.text = "Score   %d\nBest    %d\n\n%s" % [final_score, best_score, next_line]
 	match current_level:
 		1: replay_button.text = "PLAY LEVEL 2"
 		2: replay_button.text = "PLAY LEVEL 3"

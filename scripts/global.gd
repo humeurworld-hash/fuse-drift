@@ -24,6 +24,9 @@ const SETTINGS_SAVE := "user://settings.cfg"
 var music_volume: float = 1.0
 var sfx_volume:   float = 1.0
 
+# Score carried across levels in a single run — reset when returning to menu
+var carry_score: float = 0.0
+
 func _ready() -> void:
 	_migrate_legacy_save()
 	_load_all_scores()
