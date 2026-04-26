@@ -589,7 +589,7 @@ func _flash_wave_start(wave: int) -> void:
 		Color(0.65, 0.20, 0.95, 0.28),  # wave 3 — purple
 		Color(1.00, 0.82, 0.10, 0.32),  # wave 4 — gold
 	]
-	var idx := clamp(wave - 1, 0, colors.size() - 1)
+	var idx: int = clampi(wave - 1, 0, colors.size() - 1)
 	var flash := ColorRect.new()
 	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	flash.color = colors[idx]
@@ -597,7 +597,7 @@ func _flash_wave_start(wave: int) -> void:
 	flash.position = Vector2.ZERO
 	flash.modulate = Color(1, 1, 1, 0)
 	ui_layer.add_child(flash)
-	var tween := flash.create_tween()
+	var tween: Tween = flash.create_tween()
 	tween.tween_property(flash, "modulate", Color(1, 1, 1, 1), 0.14) \
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tween.tween_property(flash, "modulate", Color(1, 1, 1, 0), 0.55) \
@@ -845,7 +845,7 @@ func _on_health_changed(new_health: int) -> void:
 	if is_instance_valid(health_label) and health_label.visible:
 		health_label.modulate = Color(1.0, 0.18, 0.18, 1.0)
 		health_label.scale = Vector2(1.45, 1.45)
-		var tween := health_label.create_tween()
+		var tween: Tween = health_label.create_tween()
 		tween.set_parallel(true)
 		tween.tween_property(health_label, "scale", Vector2.ONE, 0.50) \
 			.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
