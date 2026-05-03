@@ -399,10 +399,12 @@ theme_override_font_sizes/font_size = 28
 
 [node name="DashButton" type="TextureButton" parent="UI"]
 visible = false
+anchor_top = 1.0
+anchor_bottom = 1.0
 offset_left = 8.0
-offset_top = 1140.0
+offset_top = -132.0
 offset_right = 228.0
-offset_bottom = 1272.0
+offset_bottom = 0.0
 texture_normal = ExtResource("23_dash")
 ignore_texture_size = true
 stretch_mode = 0
@@ -426,10 +428,12 @@ theme_override_constants/shadow_offset_y = 2
 
 [node name="PulseButton" type="TextureButton" parent="UI"]
 visible = false
+anchor_top = 1.0
+anchor_bottom = 1.0
 offset_left = 492.0
-offset_top = 1140.0
+offset_top = -132.0
 offset_right = 712.0
-offset_bottom = 1272.0
+offset_bottom = 0.0
 texture_normal = ExtResource("24_pulse")
 ignore_texture_size = true
 stretch_mode = 0
