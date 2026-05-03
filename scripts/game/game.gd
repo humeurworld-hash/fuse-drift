@@ -264,6 +264,12 @@ func _connect_signals() -> void:
 	level3_spawner.level_complete.connect(_on_level_complete)
 
 func _setup_ui() -> void:
+	# Panels must process even when get_tree().paused = true so their
+	# buttons always receive input regardless of pause state.
+	game_over_panel.process_mode   = Node.PROCESS_MODE_ALWAYS
+	level_clear_panel.process_mode = Node.PROCESS_MODE_ALWAYS
+	pause_panel.process_mode       = Node.PROCESS_MODE_ALWAYS
+
 	score_label.visible = false   # replaced by ScoreNumber
 	best_label.visible = false    # replaced by BestNumber
 	score_label.text = "Score: 0"
@@ -385,6 +391,7 @@ func _on_pause_menu() -> void:
 	_show_start_screen()
 
 func start_level_1() -> void:
+	get_tree().paused = false   # always clear any leftover pause
 	current_level = 1
 	best_score = Global.get_best(1)
 	state = GameState.PLAYING
@@ -436,6 +443,7 @@ func start_level_1() -> void:
 	update_hud()
 
 func start_level_2() -> void:
+	get_tree().paused = false   # always clear any leftover pause
 	current_level = 2
 	best_score = Global.get_best(2)
 	state = GameState.PLAYING
@@ -487,6 +495,7 @@ func start_level_2() -> void:
 	update_hud()
 
 func start_level_3() -> void:
+	get_tree().paused = false   # always clear any leftover pause
 	current_level = 3
 	best_score = Global.get_best(3)
 	state = GameState.PLAYING
