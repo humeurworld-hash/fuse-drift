@@ -597,6 +597,10 @@ func _on_wave_started(wave: int, total: int) -> void:
 	update_hud()
 	_hide_wave_banner()
 	_flash_wave_start(wave)
+	# Wave 1 has no predecessor wave to show its banner, so show it here.
+	# Waves 2–4 already get their banner from _on_wave_cleared().
+	if wave == 1:
+		_show_wave_banner(wave)
 
 func _flash_wave_start(wave: int) -> void:
 	# Colour escalates per wave: teal → orange → purple → gold
