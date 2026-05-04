@@ -251,6 +251,7 @@ func _connect_signals() -> void:
 	player.dash_activated.connect(_on_dash_activated)
 	player.magnet_activated.connect(_on_magnet_activated)
 	player.magnet_deactivated.connect(_on_magnet_deactivated)
+	player.rewinder_hit.connect(_on_rewinder_hit)
 	dash_button.pressed.connect(_on_dash_pressed)
 	pulse_button.pressed.connect(_on_pulse_pressed)
 	level1_spawner.wave_started.connect(_on_wave_started)
@@ -365,6 +366,10 @@ func _restart_current_level() -> void:
 		start_level_2()
 	elif state == GameState.COMPLETE and current_level == 2:
 		start_level_3()
+	elif state == GameState.COMPLETE and current_level == 3:
+		# Full game beaten — fresh run from the very beginning
+		Global.carry_score = 0.0
+		start_level_1()
 	elif current_level == 3:
 		start_level_3()
 	elif current_level == 2:
@@ -647,6 +652,30 @@ func on_near_miss(world_pos: Vector2) -> void:
 	score += NEAR_MISS_PTS
 	update_hud()
 	_spawn_float_text("+%d  NEAR!" % NEAR_MISS_PTS, world_pos + Vector2(0, -30))
+
+func _on_rewinder_hit(world_pos: Vector2) -> void:
+	if state != GameState.PLAYING:
+		return
+	const REWIND_SCORE_PENALTY := 30
+	score = maxf(score - float(REWIND_SCORE_PENALTY), 0.0)
+	# Rewind breaks the shard streak
+	shard_streak = 0
+	_animate_streak_reset()
+	update_hud()
+	_spawn_float_text("−%d  REWIND!" % REWIND_SCORE_PENALTY,
+		world_pos + Vector2(0, -48), 44, Color(0.25, 0.90, 1.00, 1.0))
+	# Cyan screen flash — distinct from the red hit flash
+	var flash := ColorRect.new()
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.color = Color(0.18, 0.85, 1.00, 0.30)
+	flash.size = get_viewport_rect().size
+	flash.position = Vector2.ZERO
+	flash.modulate = Color(1, 1, 1, 0)
+	ui_layer.add_child(flash)
+	var tween: Tween = flash.create_tween()
+	tween.tween_property(flash, "modulate", Color(1, 1, 1, 1), 0.10)
+	tween.tween_property(flash, "modulate", Color(1, 1, 1, 0), 0.50)
+	tween.tween_callback(flash.queue_free)
 
 func _on_dash_pressed() -> void:
 	if state != GameState.PLAYING:
@@ -957,6 +986,71 @@ func _on_level_complete() -> void:
 	level_clear_panel.visible = true
 	update_hud()
 
+	# ── Level 3 win — override panel with full-game completion presentation ──────
+	if current_level == 3:
+		clear_title.text = "FUSE RUN  COMPLETE!"
+		clear_summary.text = (
+			"Total Score   %d\nBest   %d\n\nAll three levels conquered.\nMore loops coming soon." \
+			% [final_score, best_score]
+		)
+		replay_button.text = "PLAY AGAIN"
+		# Gold border on the panel
+		_style_panel(level_clear_panel,
+			Color(0.05, 0.09, 0.03, 0.97),
+			Color(1.00, 0.82, 0.10, 1.0), 4)
+		_win_confetti()
+		# Dramatic golden flash — longer and brighter than a wave flash
+		var wf := ColorRect.new()
+		wf.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		wf.color = Color(1.00, 0.85, 0.10, 0.50)
+		wf.size = get_viewport_rect().size
+		wf.position = Vector2.ZERO
+		wf.modulate = Color(1, 1, 1, 0)
+		ui_layer.add_child(wf)
+		var wft: Tween = wf.create_tween()
+		wft.tween_property(wf, "modulate", Color(1, 1, 1, 1), 0.25) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		wft.tween_property(wf, "modulate", Color(1, 1, 1, 0), 1.80) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		wft.tween_callback(wf.queue_free)
+
+func _win_confetti() -> void:
+	var vp := get_viewport_rect().size
+	var piece_colors: Array[Color] = [
+		Color(1.00, 0.82, 0.10, 1.0),   # gold
+		Color(0.22, 0.86, 1.00, 1.0),   # cyan
+		Color(0.80, 0.35, 1.00, 1.0),   # purple
+		Color(0.35, 1.00, 0.50, 1.0),   # green
+		Color(1.00, 0.42, 0.18, 1.0),   # orange
+		Color(1.00, 1.00, 1.00, 1.0),   # white
+	]
+	for i in 42:
+		var cr := ColorRect.new()
+		cr.size = Vector2(randf_range(8.0, 22.0), randf_range(8.0, 22.0))
+		cr.color = piece_colors[randi() % piece_colors.size()]
+		var sx := randf_range(20.0, vp.x - 20.0)
+		var sy := randf_range(vp.y * 0.30, vp.y * 0.95)
+		cr.position = Vector2(sx, sy)
+		cr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cr.modulate.a = 0.0
+		ui_layer.add_child(cr)
+		var delay := randf_range(0.0, 1.1)
+		var end_x := sx + randf_range(-100.0, 100.0)
+		var end_y := sy - randf_range(260.0, 580.0)
+		var dur := randf_range(1.3, 2.3)
+		var t: Tween = cr.create_tween()
+		t.set_parallel(true)
+		t.tween_property(cr, "modulate:a", 1.0, 0.14).set_delay(delay)
+		t.tween_property(cr, "position", Vector2(end_x, end_y), dur) \
+			.set_delay(delay).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		# Delayed fade-out triggered by a timer so it doesn't fight the position tween
+		get_tree().create_timer(delay + dur - 0.38).timeout.connect(func():
+			if is_instance_valid(cr):
+				var fade: Tween = cr.create_tween()
+				fade.tween_property(cr, "modulate:a", 0.0, 0.38)
+				fade.tween_callback(cr.queue_free)
+		)
+
 func _on_music_finished() -> void:
 	music_player.play()
 
@@ -1234,7 +1328,10 @@ func _tint_hazards_fuse(active: bool) -> void:
 				.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 func _show_fuse_banner() -> void:
-	# ── Character sprite — slams in from scale 0, bounces, then fades ─────────
+	var vp := get_viewport_rect().size
+
+	# ── Character sprite — centred on screen, slams in from scale 0 ──────────
+	fuse_character_sprite.position = Vector2(vp.x * 0.5, vp.y * 0.46)
 	fuse_character_sprite.scale = Vector2(0.0, 0.0)
 	fuse_character_sprite.modulate = Color(1, 1, 1, 1)
 	fuse_character_sprite.visible = true
@@ -1245,15 +1342,19 @@ func _show_fuse_banner() -> void:
 	char_tween.tween_property(fuse_character_sprite, "modulate", Color(1, 1, 1, 0), 0.40) \
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	char_tween.tween_callback(func(): fuse_character_sprite.visible = false)
+
 	# ── Text banner slides up below the character ─────────────────────────────
+	var banner_y_end   := vp.y * 0.562   # ~56% down — same visual ratio on all heights
+	var banner_y_start := vp.y * 0.594   # starts just below, slides up
+	fuse_banner.size.x = vp.x
 	fuse_banner.modulate = Color(1, 1, 1, 0)
-	fuse_banner.position = Vector2(0.0, 760.0)
+	fuse_banner.position = Vector2(0.0, banner_y_start)
 	fuse_banner.visible = true
 	var tween := fuse_banner.create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(fuse_banner, "modulate", Color(1, 1, 1, 1), 0.18) \
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.tween_property(fuse_banner, "position:y", 720.0, 0.24) \
+	tween.tween_property(fuse_banner, "position:y", banner_y_end, 0.24) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.chain().tween_interval(1.0)
 	tween.chain().tween_property(fuse_banner, "modulate", Color(1, 1, 1, 0), 0.35) \

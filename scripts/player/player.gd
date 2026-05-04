@@ -7,6 +7,7 @@ signal health_changed(new_health: int)
 signal dash_activated
 signal magnet_activated
 signal magnet_deactivated
+signal rewinder_hit(world_pos: Vector2)
 
 @export var move_lerp_speed: float = 16.0
 @export var screen_padding: float = 48.0
@@ -344,6 +345,7 @@ func apply_rewind() -> void:
 	_rewind_timer = REWIND_SLUGGISH_DURATION
 	invincible = true
 	_invincibility_timer = INVINCIBILITY_DURATION
+	rewinder_hit.emit(global_position)
 	if sprite:
 		_current_anim = &""
 		sprite.play(&"glitch")
