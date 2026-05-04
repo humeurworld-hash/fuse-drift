@@ -300,7 +300,10 @@ func _on_continue() -> void:
 
 func _on_run() -> void:
 	Global.selected_level = 1
-	Transition.fade_to("res://scenes/game/Game.tscn")
+	if not Global.seen_intro:
+		Transition.fade_to("res://scenes/menu/IntroScroll.tscn")
+	else:
+		Transition.fade_to("res://scenes/game/Game.tscn")
 
 func _on_levels() -> void:
 	Transition.fade_to("res://scenes/levels/LevelSelect.tscn")

@@ -444,7 +444,10 @@ func start_level_1() -> void:
 	_setup_background(LEVEL_1_BG_TEXTURE_PATHS)
 	player.reset_player()
 	player.enable_control()
-	level1_spawner.start_run()
+	if not Global.seen_tutorial:
+		_show_tutorial()
+	else:
+		level1_spawner.start_run()
 	update_hud()
 
 func start_level_2() -> void:
@@ -676,6 +679,16 @@ func _on_rewinder_hit(world_pos: Vector2) -> void:
 	tween.tween_property(flash, "modulate", Color(1, 1, 1, 1), 0.10)
 	tween.tween_property(flash, "modulate", Color(1, 1, 1, 0), 0.50)
 	tween.tween_callback(flash.queue_free)
+
+func _show_tutorial() -> void:
+	var tut_scene: PackedScene = load("res://scenes/game/Tutorial.tscn")
+	var tut: TutorialCard = tut_scene.instantiate()
+	add_child(tut)
+	tut.tutorial_done.connect(func():
+		Global.seen_tutorial = true
+		Global.save_seen_flags()
+		level1_spawner.start_run()
+	)
 
 func _on_dash_pressed() -> void:
 	if state != GameState.PLAYING:

@@ -21,8 +21,10 @@ var unlocked_levels: Array = [1]
 const DEV_UNLOCK_ALL := false
 
 const SETTINGS_SAVE := "user://settings.cfg"
-var music_volume: float = 1.0
-var sfx_volume:   float = 1.0
+var music_volume:   float = 1.0
+var sfx_volume:     float = 1.0
+var seen_intro:     bool  = false
+var seen_tutorial:  bool  = false
 
 # Score carried across levels in a single run — reset when returning to menu
 var carry_score: float = 0.0
@@ -40,14 +42,26 @@ func _ready() -> void:
 func load_audio_settings() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(SETTINGS_SAVE) == OK:
-		music_volume = cfg.get_value("audio", "music", 1.0)
-		sfx_volume   = cfg.get_value("audio", "sfx",   1.0)
+		music_volume  = cfg.get_value("audio", "music",         1.0)
+		sfx_volume    = cfg.get_value("audio", "sfx",           1.0)
+		seen_intro    = cfg.get_value("meta",  "seen_intro",    false)
+		seen_tutorial = cfg.get_value("meta",  "seen_tutorial", false)
 	apply_sfx_volume()
 
 func save_audio_settings() -> void:
 	var cfg := ConfigFile.new()
-	cfg.set_value("audio", "music", music_volume)
-	cfg.set_value("audio", "sfx",   sfx_volume)
+	cfg.set_value("audio", "music",         music_volume)
+	cfg.set_value("audio", "sfx",           sfx_volume)
+	cfg.set_value("meta",  "seen_intro",    seen_intro)
+	cfg.set_value("meta",  "seen_tutorial", seen_tutorial)
+	cfg.save(SETTINGS_SAVE)
+
+# Convenience: persist only the seen flags without touching audio values
+func save_seen_flags() -> void:
+	var cfg := ConfigFile.new()
+	cfg.load(SETTINGS_SAVE)   # load existing values first so we don't erase them
+	cfg.set_value("meta", "seen_intro",    seen_intro)
+	cfg.set_value("meta", "seen_tutorial", seen_tutorial)
 	cfg.save(SETTINGS_SAVE)
 
 func apply_sfx_volume() -> void:
