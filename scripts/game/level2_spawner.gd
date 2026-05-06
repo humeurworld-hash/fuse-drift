@@ -90,6 +90,7 @@ var scan_timer := 999.0
 var _in_gap := false
 var _gap_timer := 0.0
 var _next_wave_index := 0
+var _start_delay: float = 0.0   # grace period before first drone spawns
 
 func start_run() -> void:
 	active = true
@@ -97,15 +98,21 @@ func start_run() -> void:
 	wave_time = 0.0
 	_in_gap = false
 	_gap_timer = 0.0
+	_start_delay = 1.5            # give player a moment to orient
 	_reset_timers_for_current_wave()
 	wave_started.emit(1, WAVE_DATA.size())
 
 func stop_run() -> void:
 	active = false
 	_in_gap = false
+	_start_delay = 0.0
 
 func _process(delta: float) -> void:
 	if not active:
+		return
+
+	if _start_delay > 0.0:
+		_start_delay -= delta
 		return
 
 	if _in_gap:

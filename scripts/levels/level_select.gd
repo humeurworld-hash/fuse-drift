@@ -63,17 +63,20 @@ func _on_back() -> void:
 	Transition.fade_to("res://scenes/menu/Menu.tscn")
 
 func _on_level1() -> void:
+	Global.carry_score = 0.0   # direct level select always starts fresh
 	Global.selected_level = 1
 	Transition.fade_to("res://scenes/game/Game.tscn")
 
 func _on_level2() -> void:
 	if not Global.is_unlocked(2):
 		return
+	Global.carry_score = 0.0
 	Global.selected_level = 2
 	Transition.fade_to("res://scenes/game/Game.tscn")
 
 func _on_level3() -> void:
 	if not Global.is_unlocked(3):
 		return
+	Global.carry_score = 0.0
 	Global.selected_level = 3
 	Transition.fade_to("res://scenes/game/Game.tscn")
