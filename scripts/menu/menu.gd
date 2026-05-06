@@ -170,10 +170,13 @@ func _start_fuse_bob() -> void:
 
 func _build_settings_panel() -> void:
 	var vp := get_viewport_rect().size
+	const PW_RATIO  := 0.82
+	const MARGIN    := 32.0
+	const PH        := 400.0   # panel height — fits header + 2 sliders + 2 buttons
 
 	_settings_panel = Panel.new()
-	_settings_panel.size = Vector2(vp.x * 0.82, 440.0)
-	_settings_panel.position = Vector2((vp.x - _settings_panel.size.x) * 0.5, vp.y * 0.28)
+	_settings_panel.size = Vector2(vp.x * PW_RATIO, PH)
+	_settings_panel.position = Vector2((vp.x - _settings_panel.size.x) * 0.5, vp.y * 0.25)
 	_settings_panel.modulate = Color(1, 1, 1, 0)
 	_settings_panel.visible = false
 	var sty := StyleBoxFlat.new()
@@ -183,7 +186,9 @@ func _build_settings_panel() -> void:
 	sty.set_corner_radius_all(12)
 	_settings_panel.add_theme_stylebox_override("panel", sty)
 
-	# Header
+	var pw := _settings_panel.size.x
+
+	# ── Header ──────────────────────────────────────────────────────────────────
 	var header := Label.new()
 	header.text = "SETTINGS"
 	header.add_theme_font_size_override("font_size", 36)
@@ -191,27 +196,27 @@ func _build_settings_panel() -> void:
 	header.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
 	header.add_theme_constant_override("shadow_offset_y", 2)
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	header.size = Vector2(_settings_panel.size.x, 52.0)
-	header.position = Vector2(0, 22.0)
+	header.size = Vector2(pw, 52.0)
+	header.position = Vector2(0.0, 16.0)
 	_settings_panel.add_child(header)
 
-	# Music slider
+	# ── Music row  (label + value at y=80, slider at y=110) ──────────────────
 	_music_slider = _make_slider_row(
-		_settings_panel, "Music", 60.0, Global.music_volume,
+		_settings_panel, "Music", 80.0, Global.music_volume,
 		Color(0.22, 0.88, 0.70, 1.0))
 	_music_slider.value_changed.connect(_on_music_changed)
 
-	# SFX slider
+	# ── SFX row  (label + value at y=180, slider at y=210) ───────────────────
 	_sfx_slider = _make_slider_row(
-		_settings_panel, "SFX", 170.0, Global.sfx_volume,
+		_settings_panel, "SFX", 180.0, Global.sfx_volume,
 		Color(0.22, 0.70, 1.00, 1.0))
 	_sfx_slider.value_changed.connect(_on_sfx_changed)
 
-	# "Replay Intro" button — resets seen flags so intro + tutorial play again
+	# ── REPLAY INTRO  (y=270) ────────────────────────────────────────────────
 	var replay_intro_btn := Button.new()
 	replay_intro_btn.text = "REPLAY INTRO"
-	replay_intro_btn.custom_minimum_size = Vector2(_settings_panel.size.x - 64.0, 44.0)
-	replay_intro_btn.position = Vector2(32.0, 280.0)
+	replay_intro_btn.size = Vector2(pw - MARGIN * 2.0, 46.0)
+	replay_intro_btn.position = Vector2(MARGIN, 270.0)
 	replay_intro_btn.add_theme_font_size_override("font_size", 18)
 	var rs := StyleBoxFlat.new()
 	rs.bg_color = Color(0.08, 0.22, 0.14, 1.0)
@@ -223,11 +228,11 @@ func _build_settings_panel() -> void:
 	replay_intro_btn.pressed.connect(_on_replay_intro)
 	_settings_panel.add_child(replay_intro_btn)
 
-	# Close button
+	# ── CLOSE  (y=334) ───────────────────────────────────────────────────────
 	var close_btn := Button.new()
 	close_btn.text = "CLOSE"
-	close_btn.size = Vector2(180.0, 52.0)
-	close_btn.position = Vector2((_settings_panel.size.x - 180.0) * 0.5, 344.0)
+	close_btn.size = Vector2(180.0, 50.0)
+	close_btn.position = Vector2((pw - 180.0) * 0.5, 334.0)
 	close_btn.add_theme_font_size_override("font_size", 22)
 	var cs := StyleBoxFlat.new()
 	cs.bg_color = Color(0.10, 0.36, 0.60, 1.0)
@@ -241,25 +246,26 @@ func _build_settings_panel() -> void:
 
 	ui_layer.add_child(_settings_panel)
 
+# y = top of the label row; slider sits 30px below the label
 func _make_slider_row(parent: Panel, label_text: String, y: float,
 		initial: float, col: Color) -> HSlider:
 	var pw := parent.size.x
-	var margin := 32.0
+	const MARGIN := 32.0
 
 	var lbl := Label.new()
 	lbl.text = label_text
-	lbl.add_theme_font_size_override("font_size", 24)
+	lbl.add_theme_font_size_override("font_size", 22)
 	lbl.add_theme_color_override("font_color", Color(0.88, 0.90, 0.95, 1.0))
-	lbl.position = Vector2(margin, y + 108.0)
+	lbl.position = Vector2(MARGIN, y)
 	parent.add_child(lbl)
 
 	var val_lbl := Label.new()
 	val_lbl.text = "%d%%" % int(initial * 100)
-	val_lbl.add_theme_font_size_override("font_size", 22)
+	val_lbl.add_theme_font_size_override("font_size", 20)
 	val_lbl.add_theme_color_override("font_color", col)
 	val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	val_lbl.size = Vector2(70.0, 32.0)
-	val_lbl.position = Vector2(pw - margin - 70.0, y + 108.0)
+	val_lbl.size = Vector2(64.0, 30.0)
+	val_lbl.position = Vector2(pw - MARGIN - 64.0, y)
 	parent.add_child(val_lbl)
 
 	var slider := HSlider.new()
@@ -267,8 +273,8 @@ func _make_slider_row(parent: Panel, label_text: String, y: float,
 	slider.max_value = 1.0
 	slider.step = 0.01
 	slider.value = initial
-	slider.size = Vector2(pw - margin * 2.0, 36.0)
-	slider.position = Vector2(margin, y + 144.0)
+	slider.size = Vector2(pw - MARGIN * 2.0, 36.0)
+	slider.position = Vector2(MARGIN, y + 32.0)
 	var fill_sty := StyleBoxFlat.new()
 	fill_sty.bg_color = col
 	fill_sty.set_corner_radius_all(4)
