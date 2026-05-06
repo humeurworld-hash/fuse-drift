@@ -6,14 +6,13 @@
 [ext_resource type="AudioStream" path="res://assets/audio/sfx_scan_warning_beep_2.mp3" id="4_beep2"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1"]
-radius = 90.0
+radius = 44.0
 
 [node name="ScanningDrone" type="Area2D"]
 collision_layer = 1
 collision_mask = 1
 monitoring = false
 monitorable = true
-scale = Vector2(0.40, 0.40)
 script = ExtResource("1_scan")
 damage = 1
 
@@ -21,6 +20,7 @@ damage = 1
 shape = SubResource("CircleShape2D_1")
 
 [node name="Body" type="Sprite2D" parent="."]
+scale = Vector2(0.22, 0.22)
 texture = ExtResource("2_tex")
 
 [node name="Beep1" type="AudioStreamPlayer2D" parent="."]

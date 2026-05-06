@@ -172,7 +172,7 @@ func _build_settings_panel() -> void:
 	var vp := get_viewport_rect().size
 
 	_settings_panel = Panel.new()
-	_settings_panel.size = Vector2(vp.x * 0.82, 420.0)
+	_settings_panel.size = Vector2(vp.x * 0.82, 440.0)
 	_settings_panel.position = Vector2((vp.x - _settings_panel.size.x) * 0.5, vp.y * 0.28)
 	_settings_panel.modulate = Color(1, 1, 1, 0)
 	_settings_panel.visible = false
@@ -207,11 +207,27 @@ func _build_settings_panel() -> void:
 		Color(0.22, 0.70, 1.00, 1.0))
 	_sfx_slider.value_changed.connect(_on_sfx_changed)
 
+	# "Replay Intro" button — resets seen flags so intro + tutorial play again
+	var replay_intro_btn := Button.new()
+	replay_intro_btn.text = "REPLAY INTRO"
+	replay_intro_btn.custom_minimum_size = Vector2(_settings_panel.size.x - 64.0, 44.0)
+	replay_intro_btn.position = Vector2(32.0, 280.0)
+	replay_intro_btn.add_theme_font_size_override("font_size", 18)
+	var rs := StyleBoxFlat.new()
+	rs.bg_color = Color(0.08, 0.22, 0.14, 1.0)
+	rs.border_color = Color(0.22, 0.82, 0.58, 1.0)
+	rs.set_border_width_all(2)
+	rs.set_corner_radius_all(6)
+	replay_intro_btn.add_theme_stylebox_override("normal", rs)
+	replay_intro_btn.add_theme_color_override("font_color", Color(0.22, 0.92, 0.62, 1.0))
+	replay_intro_btn.pressed.connect(_on_replay_intro)
+	_settings_panel.add_child(replay_intro_btn)
+
 	# Close button
 	var close_btn := Button.new()
 	close_btn.text = "CLOSE"
 	close_btn.size = Vector2(180.0, 52.0)
-	close_btn.position = Vector2((_settings_panel.size.x - 180.0) * 0.5, 330.0)
+	close_btn.position = Vector2((_settings_panel.size.x - 180.0) * 0.5, 344.0)
 	close_btn.add_theme_font_size_override("font_size", 22)
 	var cs := StyleBoxFlat.new()
 	cs.bg_color = Color(0.10, 0.36, 0.60, 1.0)
@@ -266,6 +282,10 @@ func _make_slider_row(parent: Panel, label_text: String, y: float,
 	return slider
 
 # ── Settings callbacks ────────────────────────────────────────────────────────
+
+func _on_replay_intro() -> void:
+	Global.reset_seen_flags()
+	_close_settings()
 
 func _on_music_changed(value: float) -> void:
 	Global.music_volume = value

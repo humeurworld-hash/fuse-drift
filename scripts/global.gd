@@ -64,6 +64,12 @@ func save_seen_flags() -> void:
 	cfg.set_value("meta", "seen_tutorial", seen_tutorial)
 	cfg.save(SETTINGS_SAVE)
 
+# Wipes both first-run flags so the intro scroll + tutorial play again next run
+func reset_seen_flags() -> void:
+	seen_intro    = false
+	seen_tutorial = false
+	save_seen_flags()
+
 func apply_sfx_volume() -> void:
 	var db := linear_to_db(maxf(sfx_volume, 0.001))
 	AudioServer.set_bus_volume_db(0, db)
