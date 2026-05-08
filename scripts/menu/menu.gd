@@ -34,8 +34,10 @@ var _continue_level: int = 1
 
 # Settings panel (built in code)
 var _settings_panel:   Panel   = null
-var _music_vol_label:  Label   = null
-var _sfx_vol_label:    Label   = null
+var _music_slider:     HSlider = null
+var _sfx_slider:       HSlider = null
+var _vib_circle:       Panel   = null
+var _tut_circle:       Panel   = null
 var _vibration_label:  Label   = null
 var _tutorial_label:   Label   = null
 
@@ -187,8 +189,8 @@ func _build_settings_panel() -> void:
 	if _img_tex:
 		var bg := TextureRect.new()
 		bg.texture      = _img_tex
-		bg.expand_mode  = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-		bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		bg.expand_mode  = TextureRect.EXPAND_IGNORE_SIZE
+		bg.stretch_mode = TextureRect.STRETCH_SCALE
 		bg.size         = vp
 		bg.position     = Vector2.ZERO
 		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -205,51 +207,60 @@ func _build_settings_panel() -> void:
 	var W := vp.x
 	var H := vp.y
 
-	# ── MUSIC row — tap to cycle ON / 50% / MUTE ─────────────────────────────
-	_music_vol_label = _make_state_label(
-		Vector2(W * 0.60, H * 0.285), Vector2(W * 0.27, H * 0.09),
-		Global.music_volume > 0.01)
-	_music_vol_label.text = _vol_label(Global.music_volume)
-	_settings_panel.add_child(_music_vol_label)
-	var music_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.26), Vector2(W * 0.84, H * 0.12))
-	music_btn.pressed.connect(_on_music_tap)
-	_settings_panel.add_child(music_btn)
+	# Slider track height — big enough for a comfortable mobile grab
+	var sh := H * 0.068
+	var sx := W * 0.10
+	var sw := W * 0.80
 
-	# ── SFX row — tap to cycle ON / 50% / MUTE ───────────────────────────────
-	_sfx_vol_label = _make_state_label(
-		Vector2(W * 0.60, H * 0.435), Vector2(W * 0.27, H * 0.09),
-		Global.sfx_volume > 0.01)
-	_sfx_vol_label.text = _vol_label(Global.sfx_volume)
-	_settings_panel.add_child(_sfx_vol_label)
-	var sfx_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.41), Vector2(W * 0.84, H * 0.12))
-	sfx_btn.pressed.connect(_on_sfx_tap)
-	_settings_panel.add_child(sfx_btn)
+	# ── MUSIC slider (inside the MUSIC row box, y ≈ 17–29 %) ─────────────────
+	_music_slider = _make_styled_slider(
+		Vector2(sx, H * 0.195), Vector2(sw, sh),
+		Global.music_volume, Color(0.18, 0.88, 0.72, 1.0))
+	_music_slider.value_changed.connect(_on_music_changed)
+	_settings_panel.add_child(_music_slider)
 
-	# ── VIBRATION toggle ──────────────────────────────────────────────────────
+	# ── SFX slider (inside the SFX row box, y ≈ 33–44 %) ────────────────────
+	_sfx_slider = _make_styled_slider(
+		Vector2(sx, H * 0.350), Vector2(sw, sh),
+		Global.sfx_volume, Color(0.18, 0.68, 1.00, 1.0))
+	_sfx_slider.value_changed.connect(_on_sfx_changed)
+	_settings_panel.add_child(_sfx_slider)
+
+	# ── VIBRATION toggle — full row button + purple circle indicator ──────────
+	var cs := W * 0.075          # circle diameter (square panel → full corner radius)
+	_vib_circle = _make_circle_panel(
+		Vector2(W * 0.795, H * 0.511 - cs * 0.5), cs,
+		Color(0.62, 0.12, 0.92, 0.95) if Global.vibration_enabled else Color(0.22, 0.22, 0.26, 0.7))
+	_settings_panel.add_child(_vib_circle)
 	_vibration_label = _make_state_label(
-		Vector2(W * 0.60, H * 0.585), Vector2(W * 0.27, H * 0.10),
+		Vector2(W * 0.60, H * 0.490), Vector2(W * 0.18, H * 0.055),
 		Global.vibration_enabled)
 	_settings_panel.add_child(_vibration_label)
-	var vib_btn := _make_flat_btn(Vector2(W * 0.58, H * 0.575), Vector2(W * 0.31, H * 0.11))
+	var vib_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.468), Vector2(W * 0.84, H * 0.115))
 	vib_btn.pressed.connect(_on_vibration_toggle)
 	_settings_panel.add_child(vib_btn)
 
-	# ── TUTORIAL toggle ───────────────────────────────────────────────────────
+	# ── TUTORIAL toggle — full row button + purple circle indicator ───────────
+	var tutorial_on := not Global.seen_tutorial
+	_tut_circle = _make_circle_panel(
+		Vector2(W * 0.795, H * 0.658 - cs * 0.5), cs,
+		Color(0.62, 0.12, 0.92, 0.95) if tutorial_on else Color(0.22, 0.22, 0.26, 0.7))
+	_settings_panel.add_child(_tut_circle)
 	_tutorial_label = _make_state_label(
-		Vector2(W * 0.60, H * 0.725), Vector2(W * 0.27, H * 0.10),
-		not Global.seen_tutorial)
+		Vector2(W * 0.60, H * 0.637), Vector2(W * 0.18, H * 0.055),
+		tutorial_on)
 	_settings_panel.add_child(_tutorial_label)
-	var tut_btn := _make_flat_btn(Vector2(W * 0.58, H * 0.715), Vector2(W * 0.31, H * 0.11))
+	var tut_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.615), Vector2(W * 0.84, H * 0.115))
 	tut_btn.pressed.connect(_on_tutorial_toggle)
 	_settings_panel.add_child(tut_btn)
 
 	# ── SAVE button ───────────────────────────────────────────────────────────
-	var save_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.845), Vector2(W * 0.84, H * 0.075))
+	var save_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.778), Vector2(W * 0.84, H * 0.090))
 	save_btn.pressed.connect(_on_settings_save)
 	_settings_panel.add_child(save_btn)
 
 	# ── BACK button ───────────────────────────────────────────────────────────
-	var back_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.928), Vector2(W * 0.84, H * 0.065))
+	var back_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.879), Vector2(W * 0.84, H * 0.095))
 	back_btn.pressed.connect(_close_settings)
 	_settings_panel.add_child(back_btn)
 
@@ -281,53 +292,102 @@ func _make_flat_btn(pos: Vector2, sz: Vector2) -> Button:
 	btn.position = pos
 	return btn
 
+# Styled HSlider — dark track with teal fill and a large circular thumb
+func _make_styled_slider(pos: Vector2, sz: Vector2, initial: float, col: Color) -> HSlider:
+	var slider := HSlider.new()
+	slider.min_value = 0.0
+	slider.max_value = 1.0
+	slider.step      = 0.01
+	slider.value     = initial
+	slider.size      = sz
+	slider.position  = pos
+	var cr := int(sz.y * 0.45)
+	# Track background
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(0.05, 0.09, 0.16, 0.95)
+	track.border_color = col.darkened(0.25)
+	track.set_border_width_all(2)
+	track.set_corner_radius_all(cr)
+	track.content_margin_left  = sz.y * 0.6
+	track.content_margin_right = sz.y * 0.6
+	slider.add_theme_stylebox_override("slider", track)
+	# Fill
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = col
+	fill.set_corner_radius_all(cr)
+	slider.add_theme_stylebox_override("fill", fill)
+	# Thumb — white circle drawn into a small texture
+	var diam := int(sz.y * 1.6)
+	var thumb_tex := _make_grabber_tex(diam, Color(0.96, 0.98, 1.0, 1.0))
+	slider.add_theme_icon_override("grabber",           thumb_tex)
+	slider.add_theme_icon_override("grabber_highlight", thumb_tex)
+	# Grabber area — no extra box
+	var ga := StyleBoxEmpty.new()
+	slider.add_theme_stylebox_override("grabber_area",           ga)
+	slider.add_theme_stylebox_override("grabber_area_highlight", ga)
+	return slider
+
+# Pixel-art circle texture for slider thumb
+func _make_grabber_tex(diam: int, col: Color) -> ImageTexture:
+	var img := Image.create(diam, diam, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var cx := diam * 0.5
+	var cy := diam * 0.5
+	var r  := diam * 0.44
+	for x in diam:
+		for y in diam:
+			if Vector2(x + 0.5, y + 0.5).distance_to(Vector2(cx, cy)) <= r:
+				img.set_pixel(x, y, col)
+	return ImageTexture.create_from_image(img)
+
+# Circular Panel indicator (toggle state dot)
+func _make_circle_panel(pos: Vector2, sz: float, col: Color) -> Panel:
+	var p := Panel.new()
+	p.size     = Vector2(sz, sz)
+	p.position = pos
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sty := StyleBoxFlat.new()
+	sty.bg_color = col
+	sty.set_corner_radius_all(int(sz * 0.5))
+	p.add_theme_stylebox_override("panel", sty)
+	return p
+
 # ── Settings callbacks ────────────────────────────────────────────────────────
 
-func _vol_label(vol: float) -> String:
-	if vol <= 0.01: return "MUTE"
-	elif vol < 0.75: return "50%"
-	return "ON"
+func _on_music_changed(value: float) -> void:
+	Global.music_volume = value
+	Global.save_audio_settings()
 
-func _on_music_tap() -> void:
-	if Global.music_volume >= 1.0:
-		Global.music_volume = 0.5
-	elif Global.music_volume >= 0.49:
-		Global.music_volume = 0.0
-	else:
-		Global.music_volume = 1.0
-	if is_instance_valid(_music_vol_label):
-		_music_vol_label.text = _vol_label(Global.music_volume)
-		_music_vol_label.add_theme_color_override("font_color",
-			Color(0.22, 0.92, 0.86, 1.0) if Global.music_volume > 0.01 else Color(0.55, 0.55, 0.60, 1.0))
-
-func _on_sfx_tap() -> void:
-	if Global.sfx_volume >= 1.0:
-		Global.sfx_volume = 0.5
-	elif Global.sfx_volume >= 0.49:
-		Global.sfx_volume = 0.0
-	else:
-		Global.sfx_volume = 1.0
+func _on_sfx_changed(value: float) -> void:
+	Global.sfx_volume = value
 	Global.apply_sfx_volume()
-	if is_instance_valid(_sfx_vol_label):
-		_sfx_vol_label.text = _vol_label(Global.sfx_volume)
-		_sfx_vol_label.add_theme_color_override("font_color",
-			Color(0.22, 0.92, 0.86, 1.0) if Global.sfx_volume > 0.01 else Color(0.55, 0.55, 0.60, 1.0))
+	Global.save_audio_settings()
 
 func _on_vibration_toggle() -> void:
 	Global.vibration_enabled = not Global.vibration_enabled
+	var on := Global.vibration_enabled
 	if is_instance_valid(_vibration_label):
-		_vibration_label.text = "ON" if Global.vibration_enabled else "OFF"
+		_vibration_label.text = "ON" if on else "OFF"
 		_vibration_label.add_theme_color_override("font_color",
-			Color(0.22, 0.92, 0.86, 1.0) if Global.vibration_enabled else Color(0.55, 0.55, 0.60, 1.0))
+			Color(0.22, 0.92, 0.86, 1.0) if on else Color(0.55, 0.55, 0.60, 1.0))
+	if is_instance_valid(_vib_circle):
+		var sty := StyleBoxFlat.new()
+		sty.bg_color = Color(0.62, 0.12, 0.92, 0.95) if on else Color(0.22, 0.22, 0.26, 0.7)
+		sty.set_corner_radius_all(int(_vib_circle.size.x * 0.5))
+		_vib_circle.add_theme_stylebox_override("panel", sty)
 
 func _on_tutorial_toggle() -> void:
-	# seen_tutorial=false means "show it again" (ON); flip the flag
 	Global.seen_tutorial = not Global.seen_tutorial
 	var tutorial_on := not Global.seen_tutorial
 	if is_instance_valid(_tutorial_label):
 		_tutorial_label.text = "ON" if tutorial_on else "OFF"
 		_tutorial_label.add_theme_color_override("font_color",
 			Color(0.22, 0.92, 0.86, 1.0) if tutorial_on else Color(0.55, 0.55, 0.60, 1.0))
+	if is_instance_valid(_tut_circle):
+		var sty := StyleBoxFlat.new()
+		sty.bg_color = Color(0.62, 0.12, 0.92, 0.95) if tutorial_on else Color(0.22, 0.22, 0.26, 0.7)
+		sty.set_corner_radius_all(int(_tut_circle.size.x * 0.5))
+		_tut_circle.add_theme_stylebox_override("panel", sty)
 
 func _on_settings_save() -> void:
 	Global.save_audio_settings()   # persists music, sfx, vibration, seen flags

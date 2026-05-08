@@ -53,8 +53,8 @@ func _build_image_screen() -> void:
 	if _bg_tex:
 		var bg := TextureRect.new()
 		bg.texture      = _bg_tex
-		bg.expand_mode  = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-		bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		bg.expand_mode  = TextureRect.EXPAND_IGNORE_SIZE
+		bg.stretch_mode = TextureRect.STRETCH_SCALE
 		bg.size         = vp
 		bg.position     = Vector2.ZERO
 		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE

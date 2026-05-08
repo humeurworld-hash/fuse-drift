@@ -253,17 +253,18 @@ func _setup_pause_image() -> void:
 	# Image fills the panel
 	var img := TextureRect.new()
 	img.texture      = tex
-	img.expand_mode  = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	img.expand_mode  = TextureRect.EXPAND_IGNORE_SIZE
+	img.stretch_mode = TextureRect.STRETCH_SCALE
 	img.size         = vp
 	img.position     = Vector2.ZERO
 	img.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pause_panel.add_child(img)
 	pause_panel.move_child(img, 0)
 
-	# Hide original buttons — replaced by image-positioned ones below
-	resume_button.visible    = false
-	pause_menu_button.visible = false
+	# Hide ALL existing panel children (title label + original buttons)
+	for child in pause_panel.get_children():
+		if child != img:
+			child.visible = false
 
 	# ── Transparent buttons placed over artwork ─────────────────────────────
 	# Image is 941×1672, viewport 720×1280 — same aspect, fills perfectly.
