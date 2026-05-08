@@ -74,16 +74,19 @@ func _setup_background() -> void:
 	fallback_bg.visible = true
 	background_art.visible = false
 	for path in BG_PATHS:
-		if ResourceLoader.exists(path):
-			var tex: Texture2D = load(path)
-			if tex:
-				background_art.texture = tex
-				background_art.position = vp * 0.5
-				var s := tex.get_size()
-				background_art.scale = Vector2.ONE * maxf(vp.x / s.x, vp.y / s.y)
-				background_art.visible = true
-				fallback_bg.visible = false
-				return
+		var raw := Image.load_from_file(ProjectSettings.globalize_path(path))
+		if raw == null:
+			continue
+		var tex: Texture2D = ImageTexture.create_from_image(raw)
+		if tex == null:
+			continue
+		background_art.texture = tex
+		background_art.position = vp * 0.5
+		var s := tex.get_size()
+		background_art.scale = Vector2.ONE * maxf(vp.x / s.x, vp.y / s.y)
+		background_art.visible = true
+		fallback_bg.visible = false
+		return
 
 # ── Scores / continue ─────────────────────────────────────────────────────────
 
@@ -318,10 +321,11 @@ func _make_styled_slider(pos: Vector2, sz: Vector2, initial: float, col: Color) 
 	fill.set_corner_radius_all(cr)
 	slider.add_theme_stylebox_override("fill", fill)
 	# Thumb — teal circle with a center grip line, sized to match track height
-	var diam := int(sz.y * 0.92)
+	var diam := max(8, int(sz.y * 0.92))
 	var thumb_tex := _make_grabber_tex(diam, col)
-	slider.add_theme_icon_override("grabber",           thumb_tex)
-	slider.add_theme_icon_override("grabber_highlight", thumb_tex)
+	if thumb_tex:
+		slider.add_theme_icon_override("grabber",           thumb_tex)
+		slider.add_theme_icon_override("grabber_highlight", thumb_tex)
 	# Grabber area — no extra box
 	var ga := StyleBoxEmpty.new()
 	slider.add_theme_stylebox_override("grabber_area",           ga)
@@ -330,22 +334,23 @@ func _make_styled_slider(pos: Vector2, sz: Vector2, initial: float, col: Color) 
 
 # Pixel-art circle texture for slider thumb with center grip line
 func _make_grabber_tex(diam: int, col: Color) -> ImageTexture:
+	diam = max(8, diam)   # safety: never create a 0-size image
 	var img := Image.create(diam, diam, false, Image.FORMAT_RGBA8)
+	if img == null:
+		return null
 	img.fill(Color(0, 0, 0, 0))
-	var cx  := diam * 0.5
-	var cy  := diam * 0.5
-	var r   := diam * 0.44
-	var lhw := max(1, int(diam * 0.07))   # grip line half-width
-	var dark := col.darkened(0.50)
-	for x in diam:
-		for y in diam:
-			if Vector2(x + 0.5, y + 0.5).distance_to(Vector2(cx, cy)) <= r:
-				# Single vertical grip line through centre
-				if abs((x + 0.5) - cx) <= lhw:
-					img.set_pixel(x, y, dark)
-				else:
-					img.set_pixel(x, y, col)
-	return ImageTexture.create_from_image(img)
+	var half := diam / 2
+	var r_sq := (half - 1) * (half - 1)
+	var lhw  := max(1, int(diam * 0.10))   # grip line half-width
+	var dark := col.darkened(0.45)
+	for px in diam:
+		for py in diam:
+			var dx := px - half
+			var dy := py - half
+			if dx * dx + dy * dy <= r_sq:
+				img.set_pixel(px, py, dark if abs(dx) <= lhw else col)
+	var tex := ImageTexture.create_from_image(img)
+	return tex
 
 # Circular Panel indicator (toggle state dot)
 func _make_circle_panel(pos: Vector2, sz: float, col: Color) -> Panel:
