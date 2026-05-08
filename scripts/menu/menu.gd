@@ -34,8 +34,8 @@ var _continue_level: int = 1
 
 # Settings panel (built in code)
 var _settings_panel:   Panel   = null
-var _music_slider:     HSlider = null
-var _sfx_slider:       HSlider = null
+var _music_vol_label:  Label   = null
+var _sfx_vol_label:    Label   = null
 var _vibration_label:  Label   = null
 var _tutorial_label:   Label   = null
 
@@ -205,19 +205,25 @@ func _build_settings_panel() -> void:
 	var W := vp.x
 	var H := vp.y
 
-	# ── MUSIC slider ──────────────────────────────────────────────────────────
-	_music_slider = _make_image_slider(
-		Vector2(W * 0.26, H * 0.29), Vector2(W * 0.64, H * 0.08),
-		Global.music_volume, Color(0.22, 0.90, 0.70, 1.0))
-	_music_slider.value_changed.connect(_on_music_changed)
-	_settings_panel.add_child(_music_slider)
+	# ── MUSIC row — tap to cycle ON / 50% / MUTE ─────────────────────────────
+	_music_vol_label = _make_state_label(
+		Vector2(W * 0.60, H * 0.285), Vector2(W * 0.27, H * 0.09),
+		Global.music_volume > 0.01)
+	_music_vol_label.text = _vol_label(Global.music_volume)
+	_settings_panel.add_child(_music_vol_label)
+	var music_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.26), Vector2(W * 0.84, H * 0.12))
+	music_btn.pressed.connect(_on_music_tap)
+	_settings_panel.add_child(music_btn)
 
-	# ── SFX slider ────────────────────────────────────────────────────────────
-	_sfx_slider = _make_image_slider(
-		Vector2(W * 0.26, H * 0.44), Vector2(W * 0.64, H * 0.08),
-		Global.sfx_volume, Color(0.22, 0.70, 1.00, 1.0))
-	_sfx_slider.value_changed.connect(_on_sfx_changed)
-	_settings_panel.add_child(_sfx_slider)
+	# ── SFX row — tap to cycle ON / 50% / MUTE ───────────────────────────────
+	_sfx_vol_label = _make_state_label(
+		Vector2(W * 0.60, H * 0.435), Vector2(W * 0.27, H * 0.09),
+		Global.sfx_volume > 0.01)
+	_sfx_vol_label.text = _vol_label(Global.sfx_volume)
+	_settings_panel.add_child(_sfx_vol_label)
+	var sfx_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.41), Vector2(W * 0.84, H * 0.12))
+	sfx_btn.pressed.connect(_on_sfx_tap)
+	_settings_panel.add_child(sfx_btn)
 
 	# ── VIBRATION toggle ──────────────────────────────────────────────────────
 	_vibration_label = _make_state_label(
@@ -249,25 +255,6 @@ func _build_settings_panel() -> void:
 
 	ui_layer.add_child(_settings_panel)
 
-# Invisible HSlider with transparent track — image artwork shows through,
-# only the teal fill and thumb are visible.
-func _make_image_slider(pos: Vector2, sz: Vector2, initial: float, col: Color) -> HSlider:
-	var slider := HSlider.new()
-	slider.min_value = 0.0
-	slider.max_value = 1.0
-	slider.step      = 0.01
-	slider.value     = initial
-	slider.size      = sz
-	slider.position  = pos
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = col.darkened(0.2)
-	fill.set_corner_radius_all(4)
-	var track := StyleBoxEmpty.new()   # transparent — image track shows through
-	slider.add_theme_stylebox_override("fill",   fill)
-	slider.add_theme_stylebox_override("slider", track)
-	slider.add_theme_color_override("grabber_color", col)
-	return slider
-
 # Small teal ON/OFF label overlaid on the toggle artwork
 func _make_state_label(pos: Vector2, sz: Vector2, is_on: bool) -> Label:
 	var lbl := Label.new()
@@ -296,14 +283,35 @@ func _make_flat_btn(pos: Vector2, sz: Vector2) -> Button:
 
 # ── Settings callbacks ────────────────────────────────────────────────────────
 
-func _on_music_changed(value: float) -> void:
-	Global.music_volume = value
-	Global.save_audio_settings()
+func _vol_label(vol: float) -> String:
+	if vol <= 0.01: return "MUTE"
+	elif vol < 0.75: return "50%"
+	return "ON"
 
-func _on_sfx_changed(value: float) -> void:
-	Global.sfx_volume = value
+func _on_music_tap() -> void:
+	if Global.music_volume >= 1.0:
+		Global.music_volume = 0.5
+	elif Global.music_volume >= 0.49:
+		Global.music_volume = 0.0
+	else:
+		Global.music_volume = 1.0
+	if is_instance_valid(_music_vol_label):
+		_music_vol_label.text = _vol_label(Global.music_volume)
+		_music_vol_label.add_theme_color_override("font_color",
+			Color(0.22, 0.92, 0.86, 1.0) if Global.music_volume > 0.01 else Color(0.55, 0.55, 0.60, 1.0))
+
+func _on_sfx_tap() -> void:
+	if Global.sfx_volume >= 1.0:
+		Global.sfx_volume = 0.5
+	elif Global.sfx_volume >= 0.49:
+		Global.sfx_volume = 0.0
+	else:
+		Global.sfx_volume = 1.0
 	Global.apply_sfx_volume()
-	Global.save_audio_settings()
+	if is_instance_valid(_sfx_vol_label):
+		_sfx_vol_label.text = _vol_label(Global.sfx_volume)
+		_sfx_vol_label.add_theme_color_override("font_color",
+			Color(0.22, 0.92, 0.86, 1.0) if Global.sfx_volume > 0.01 else Color(0.55, 0.55, 0.60, 1.0))
 
 func _on_vibration_toggle() -> void:
 	Global.vibration_enabled = not Global.vibration_enabled
