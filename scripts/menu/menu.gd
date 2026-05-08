@@ -325,6 +325,8 @@ func _on_continue() -> void:
 	Transition.fade_to("res://scenes/game/Game.tscn")
 
 func _on_run() -> void:
+	Global.difficulty = 1          # default Medium for quick-start from menu
+	Global.carry_score = 0.0
 	Global.selected_level = 1
 	if not Global.seen_intro:
 		Transition.fade_to("res://scenes/menu/IntroScroll.tscn")

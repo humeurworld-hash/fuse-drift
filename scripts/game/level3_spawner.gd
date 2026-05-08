@@ -176,8 +176,9 @@ func _spawn_clock(cfg: Dictionary) -> void:
 	if scene == null:
 		return
 
+	var diff_mult := Global.DIFFICULTY_SPEED_MULT[clampi(Global.difficulty, 0, 2)]
 	var clock: ClockHazard = scene.instantiate()
-	clock.speed = float(cfg["speed"]) + randf_range(-20.0, 40.0)
+	clock.speed = (float(cfg["speed"]) + randf_range(-20.0, 40.0)) * diff_mult
 	clock.position = Vector2(randf_range(side_padding, width - side_padding), -150.0)
 	hazards_root.add_child(clock)
 	clock.speed_mult = hazard_speed_mult

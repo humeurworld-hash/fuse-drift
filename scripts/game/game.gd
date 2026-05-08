@@ -146,7 +146,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if state != GameState.PLAYING:
 		return
-	score += delta * 2.0
+	score += delta * 2.0 * Global.DIFFICULTY_SCORE_MULT[clampi(Global.difficulty, 0, 2)]
 	update_hud()
 	_update_bg_parallax(delta)
 	_update_ability_buttons()
@@ -759,6 +759,7 @@ func _on_mourk_collected(base_points: int, world_pos: Vector2, shard_color: int)
 	var pts := base_points * mult
 	if jackpot_active:
 		pts *= JACKPOT_MULT
+	pts *= Global.DIFFICULTY_SCORE_MULT[clampi(Global.difficulty, 0, 2)]
 	score += pts
 	update_hud()
 	# Fuse State — trigger at every 10th consecutive shard

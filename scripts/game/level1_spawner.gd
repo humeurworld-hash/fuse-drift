@@ -160,9 +160,10 @@ func _spawn_rock(cfg: Dictionary) -> void:
 	if rock_scene == null:
 		return
 	var width := get_viewport().get_visible_rect().size.x
+	var diff_mult := Global.DIFFICULTY_SPEED_MULT[clampi(Global.difficulty, 0, 2)]
 	var rock: RockHazard = rock_scene.instantiate()
 	rock.position = Vector2(randf_range(side_padding, width - side_padding), -120.0)
-	rock.speed = float(cfg["rock_speed"]) + randf_range(-30.0, 60.0)
+	rock.speed = (float(cfg["rock_speed"]) + randf_range(-30.0, 60.0)) * diff_mult
 	hazards_root.add_child(rock)
 	rock.speed_mult = hazard_speed_mult
 
@@ -171,7 +172,7 @@ func _spawn_rock(cfg: Dictionary) -> void:
 		var offset_dir := -1.0 if randf() < 0.5 else 1.0
 		var second_x := clampf(rock.position.x + randf_range(110.0, 180.0) * offset_dir, side_padding, width - side_padding)
 		rock2.position = Vector2(second_x, -160.0)
-		rock2.speed = float(cfg["rock_speed"]) + randf_range(10.0, 85.0)
+		rock2.speed = (float(cfg["rock_speed"]) + randf_range(10.0, 85.0)) * diff_mult
 		hazards_root.add_child(rock2)
 		rock2.speed_mult = hazard_speed_mult
 

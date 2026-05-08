@@ -6,26 +6,36 @@ const LEVEL_BG_PATHS := {
 	3: ["res://scenes/background/new level 3.png", "res://scenes/background/level 3.PNG", "res://scenes/background/level 3.png"],
 }
 
-@onready var back_button: Button = $UI/BackButton
-@onready var level1_button: TextureButton = $UI/Level1Button
-@onready var level1_best: Label = $UI/Level1Best
-@onready var level2_button: TextureButton = $UI/Level2Button
-@onready var level2_best: Label = $UI/Level2Best
-@onready var level2_lock_overlay: ColorRect = $UI/Level2LockOverlay
-@onready var level2_lock_label: Label = $UI/Level2LockLabel
-@onready var level3_button: TextureButton = $UI/Level3Button
-@onready var level3_best: Label = $UI/Level3Best
-@onready var level3_lock_overlay: ColorRect = $UI/Level3LockOverlay
-@onready var level3_lock_label: Label = $UI/Level3LockLabel
+const LEVEL_NAMES := {
+	1: "The Cave",
+	2: "The Verge",
+	3: "The Loops",
+}
+
+@onready var back_button:       Button        = $UI/BackButton
+@onready var level1_button:     TextureButton = $UI/Level1Button
+@onready var level1_best:       Label         = $UI/Level1Best
+@onready var level2_button:     TextureButton = $UI/Level2Button
+@onready var level2_best:       Label         = $UI/Level2Best
+@onready var level2_lock_overlay: ColorRect   = $UI/Level2LockOverlay
+@onready var level2_lock_label:   Label       = $UI/Level2LockLabel
+@onready var level3_button:     TextureButton = $UI/Level3Button
+@onready var level3_best:       Label         = $UI/Level3Best
+@onready var level3_lock_overlay: ColorRect   = $UI/Level3LockOverlay
+@onready var level3_lock_label:   Label       = $UI/Level3LockLabel
+
+var _pending_level: int = 0
+var _picker_panel:  Panel = null
+var _darkener:      ColorRect = null
 
 func _ready() -> void:
 	_load_backgrounds()
 	_apply_scores()
 	_apply_locks()
 	back_button.pressed.connect(_on_back)
-	level1_button.pressed.connect(_on_level1)
-	level2_button.pressed.connect(_on_level2)
-	level3_button.pressed.connect(_on_level3)
+	level1_button.pressed.connect(func(): _show_difficulty_picker(1))
+	level2_button.pressed.connect(func(): _show_difficulty_picker(2))
+	level3_button.pressed.connect(func(): _show_difficulty_picker(3))
 
 func _load_backgrounds() -> void:
 	var buttons := { 1: level1_button, 2: level2_button, 3: level3_button }
@@ -59,24 +69,162 @@ func _apply_locks() -> void:
 	level3_lock_label.visible = not l3_unlocked
 	level3_best.visible = l3_unlocked
 
+# ── Difficulty picker ─────────────────────────────────────────────────────────
+
+func _show_difficulty_picker(level: int) -> void:
+	if _picker_panel != null:
+		return
+	if level > 1 and not Global.is_unlocked(level):
+		return
+	_pending_level = level
+
+	var vp := get_viewport_rect().size
+	const PH := 320.0   # picker panel height
+
+	# Semi-transparent darkener — tap it to cancel
+	_darkener = ColorRect.new()
+	_darkener.color = Color(0.0, 0.0, 0.0, 0.65)
+	_darkener.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_darkener.mouse_filter = Control.MOUSE_FILTER_STOP
+	_darkener.modulate = Color(1, 1, 1, 0)
+	$UI.add_child(_darkener)
+	_darkener.gui_input.connect(func(ev: InputEvent):
+		if ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed:
+			_hide_difficulty_picker()
+	)
+
+	# Picker panel — slides up from bottom
+	_picker_panel = Panel.new()
+	_picker_panel.size = Vector2(vp.x, PH)
+	_picker_panel.position = Vector2(0.0, vp.y)
+	var sty := StyleBoxFlat.new()
+	sty.bg_color = Color(0.04, 0.07, 0.14, 0.98)
+	sty.border_color = Color(0.22, 0.82, 0.88, 1.0)
+	sty.set_border_width_all(0)
+	sty.border_width_top = 2
+	sty.set_corner_radius_all(0)
+	_picker_panel.add_theme_stylebox_override("panel", sty)
+	$UI.add_child(_picker_panel)
+
+	# Level name header
+	var header := Label.new()
+	header.text = "LEVEL %d  —  %s" % [level, LEVEL_NAMES.get(level, "")]
+	header.add_theme_font_size_override("font_size", 22)
+	header.add_theme_color_override("font_color", Color(0.60, 0.90, 0.92, 1.0))
+	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	header.size = Vector2(vp.x, 38.0)
+	header.position = Vector2(0.0, 18.0)
+	_picker_panel.add_child(header)
+
+	var sub := Label.new()
+	sub.text = "CHOOSE DIFFICULTY"
+	sub.add_theme_font_size_override("font_size", 28)
+	sub.add_theme_color_override("font_color", Color(0.92, 0.94, 1.0, 1.0))
+	sub.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+	sub.add_theme_constant_override("shadow_offset_y", 2)
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.size = Vector2(vp.x, 42.0)
+	sub.position = Vector2(0.0, 56.0)
+	_picker_panel.add_child(sub)
+
+	# Three difficulty buttons side by side
+	const DIFF_COLORS := [
+		Color(0.12, 0.48, 0.22, 1.0),   # Easy  — green
+		Color(0.12, 0.28, 0.58, 1.0),   # Medium — blue
+		Color(0.52, 0.12, 0.12, 1.0),   # Hard  — red
+	]
+	const DIFF_BORDER := [
+		Color(0.22, 0.92, 0.44, 1.0),
+		Color(0.22, 0.70, 1.00, 1.0),
+		Color(1.00, 0.28, 0.28, 1.0),
+	]
+	const DIFF_LABELS := ["EASY", "MEDIUM", "HARD"]
+	const DIFF_SUBS   := ["0.65×  speed", "1.0×  speed", "1.5×  speed\n+35% score"]
+
+	var btn_w := (vp.x - 48.0) / 3.0
+	const BTN_H := 120.0
+	var btn_y  := 112.0
+
+	for i in 3:
+		var col := DIFF_COLORS[i]
+		var bdr := DIFF_BORDER[i]
+
+		var btn := Button.new()
+		btn.text = ""
+		btn.flat = true
+		var bs := StyleBoxFlat.new()
+		bs.bg_color = col
+		bs.border_color = bdr
+		bs.set_border_width_all(2)
+		bs.set_corner_radius_all(10)
+		var bsh := bs.duplicate() as StyleBoxFlat
+		bsh.bg_color = col.lightened(0.15)
+		btn.add_theme_stylebox_override("normal",  bs)
+		btn.add_theme_stylebox_override("hover",   bsh)
+		btn.add_theme_stylebox_override("pressed", bsh)
+		btn.size     = Vector2(btn_w, BTN_H)
+		btn.position = Vector2(16.0 + i * (btn_w + 8.0), btn_y)
+		_picker_panel.add_child(btn)
+
+		# Label inside button — difficulty name
+		var lbl := Label.new()
+		lbl.text = DIFF_LABELS[i]
+		lbl.add_theme_font_size_override("font_size", 26)
+		lbl.add_theme_color_override("font_color", Color(0.95, 0.97, 1.0, 1.0))
+		lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
+		lbl.add_theme_constant_override("shadow_offset_y", 2)
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.size     = Vector2(btn_w, 44.0)
+		lbl.position = Vector2(0.0, 14.0)
+		lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		btn.add_child(lbl)
+
+		# Sub-label — speed info
+		var sub_lbl := Label.new()
+		sub_lbl.text = DIFF_SUBS[i]
+		sub_lbl.add_theme_font_size_override("font_size", 14)
+		sub_lbl.add_theme_color_override("font_color", bdr)
+		sub_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		sub_lbl.size     = Vector2(btn_w, 50.0)
+		sub_lbl.position = Vector2(0.0, 58.0)
+		sub_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		btn.add_child(sub_lbl)
+
+		var diff_idx := i   # capture for lambda
+		btn.pressed.connect(func(): _on_difficulty_chosen(diff_idx))
+
+	# Animate in
+	var t := _picker_panel.create_tween()
+	t.set_parallel(true)
+	t.tween_property(_picker_panel, "position:y", vp.y - PH, 0.28) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	t.tween_property(_darkener, "modulate", Color(1, 1, 1, 1), 0.22) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+func _hide_difficulty_picker() -> void:
+	if _picker_panel == null:
+		return
+	var vp := get_viewport_rect().size
+	var t := _picker_panel.create_tween()
+	t.set_parallel(true)
+	t.tween_property(_picker_panel, "position:y", vp.y, 0.22) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	t.tween_property(_darkener, "modulate", Color(1, 1, 1, 0), 0.18) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	t.tween_callback(func():
+		if is_instance_valid(_picker_panel): _picker_panel.queue_free()
+		if is_instance_valid(_darkener):     _darkener.queue_free()
+		_picker_panel = null
+		_darkener = null
+	)
+
+func _on_difficulty_chosen(diff: int) -> void:
+	Global.difficulty   = diff
+	Global.carry_score  = 0.0
+	Global.selected_level = _pending_level
+	Transition.fade_to("res://scenes/game/Game.tscn")
+
+# ── Navigation ────────────────────────────────────────────────────────────────
+
 func _on_back() -> void:
 	Transition.fade_to("res://scenes/menu/Menu.tscn")
-
-func _on_level1() -> void:
-	Global.carry_score = 0.0   # direct level select always starts fresh
-	Global.selected_level = 1
-	Transition.fade_to("res://scenes/game/Game.tscn")
-
-func _on_level2() -> void:
-	if not Global.is_unlocked(2):
-		return
-	Global.carry_score = 0.0
-	Global.selected_level = 2
-	Transition.fade_to("res://scenes/game/Game.tscn")
-
-func _on_level3() -> void:
-	if not Global.is_unlocked(3):
-		return
-	Global.carry_score = 0.0
-	Global.selected_level = 3
-	Transition.fade_to("res://scenes/game/Game.tscn")

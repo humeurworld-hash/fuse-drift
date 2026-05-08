@@ -29,6 +29,12 @@ var seen_tutorial:  bool  = false
 # Score carried across levels in a single run — reset when returning to menu
 var carry_score: float = 0.0
 
+# Difficulty: 0 = Easy, 1 = Medium, 2 = Hard
+var difficulty: int = 1
+const DIFFICULTY_NAMES:       Array[String] = ["EASY", "MEDIUM", "HARD"]
+const DIFFICULTY_SPEED_MULT:  Array[float]  = [0.65,   1.00,     1.50]
+const DIFFICULTY_SCORE_MULT:  Array[float]  = [1.00,   1.00,     1.35]
+
 func _ready() -> void:
 	_migrate_legacy_save()
 	_load_all_scores()
