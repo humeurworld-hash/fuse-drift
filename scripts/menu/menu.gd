@@ -227,30 +227,31 @@ func _build_settings_panel() -> void:
 	_settings_panel.add_child(_sfx_slider)
 
 	# ── VIBRATION toggle — full row button + purple circle indicator ──────────
-	var cs := W * 0.075          # circle diameter (square panel → full corner radius)
+	# Circle sits exactly over the teal dot baked into the image
+	var cs := W * 0.052          # smaller circle — matches the image dot size
 	_vib_circle = _make_circle_panel(
-		Vector2(W * 0.795, H * 0.511 - cs * 0.5), cs,
+		Vector2(W * 0.820 - cs * 0.5, H * 0.540 - cs * 0.5), cs,
 		Color(0.62, 0.12, 0.92, 0.95) if Global.vibration_enabled else Color(0.22, 0.22, 0.26, 0.7))
 	_settings_panel.add_child(_vib_circle)
 	_vibration_label = _make_state_label(
-		Vector2(W * 0.60, H * 0.490), Vector2(W * 0.18, H * 0.055),
+		Vector2(W * 0.60, H * 0.518), Vector2(W * 0.18, H * 0.050),
 		Global.vibration_enabled)
 	_settings_panel.add_child(_vibration_label)
-	var vib_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.468), Vector2(W * 0.84, H * 0.115))
+	var vib_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.483), Vector2(W * 0.84, H * 0.115))
 	vib_btn.pressed.connect(_on_vibration_toggle)
 	_settings_panel.add_child(vib_btn)
 
 	# ── TUTORIAL toggle — full row button + purple circle indicator ───────────
 	var tutorial_on := not Global.seen_tutorial
 	_tut_circle = _make_circle_panel(
-		Vector2(W * 0.795, H * 0.658 - cs * 0.5), cs,
+		Vector2(W * 0.820 - cs * 0.5, H * 0.690 - cs * 0.5), cs,
 		Color(0.62, 0.12, 0.92, 0.95) if tutorial_on else Color(0.22, 0.22, 0.26, 0.7))
 	_settings_panel.add_child(_tut_circle)
 	_tutorial_label = _make_state_label(
-		Vector2(W * 0.60, H * 0.637), Vector2(W * 0.18, H * 0.055),
+		Vector2(W * 0.60, H * 0.667), Vector2(W * 0.18, H * 0.050),
 		tutorial_on)
 	_settings_panel.add_child(_tutorial_label)
-	var tut_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.615), Vector2(W * 0.84, H * 0.115))
+	var tut_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.633), Vector2(W * 0.84, H * 0.115))
 	tut_btn.pressed.connect(_on_tutorial_toggle)
 	_settings_panel.add_child(tut_btn)
 
@@ -316,9 +317,9 @@ func _make_styled_slider(pos: Vector2, sz: Vector2, initial: float, col: Color) 
 	fill.bg_color = col
 	fill.set_corner_radius_all(cr)
 	slider.add_theme_stylebox_override("fill", fill)
-	# Thumb — white circle drawn into a small texture
-	var diam := int(sz.y * 1.6)
-	var thumb_tex := _make_grabber_tex(diam, Color(0.96, 0.98, 1.0, 1.0))
+	# Thumb — teal circle with a center grip line, sized to match track height
+	var diam := int(sz.y * 0.92)
+	var thumb_tex := _make_grabber_tex(diam, col)
 	slider.add_theme_icon_override("grabber",           thumb_tex)
 	slider.add_theme_icon_override("grabber_highlight", thumb_tex)
 	# Grabber area — no extra box
@@ -327,17 +328,23 @@ func _make_styled_slider(pos: Vector2, sz: Vector2, initial: float, col: Color) 
 	slider.add_theme_stylebox_override("grabber_area_highlight", ga)
 	return slider
 
-# Pixel-art circle texture for slider thumb
+# Pixel-art circle texture for slider thumb with center grip line
 func _make_grabber_tex(diam: int, col: Color) -> ImageTexture:
 	var img := Image.create(diam, diam, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
-	var cx := diam * 0.5
-	var cy := diam * 0.5
-	var r  := diam * 0.44
+	var cx  := diam * 0.5
+	var cy  := diam * 0.5
+	var r   := diam * 0.44
+	var lhw := max(1, int(diam * 0.07))   # grip line half-width
+	var dark := col.darkened(0.50)
 	for x in diam:
 		for y in diam:
 			if Vector2(x + 0.5, y + 0.5).distance_to(Vector2(cx, cy)) <= r:
-				img.set_pixel(x, y, col)
+				# Single vertical grip line through centre
+				if abs((x + 0.5) - cx) <= lhw:
+					img.set_pixel(x, y, dark)
+				else:
+					img.set_pixel(x, y, col)
 	return ImageTexture.create_from_image(img)
 
 # Circular Panel indicator (toggle state dot)
@@ -371,10 +378,10 @@ func _on_vibration_toggle() -> void:
 		_vibration_label.add_theme_color_override("font_color",
 			Color(0.22, 0.92, 0.86, 1.0) if on else Color(0.55, 0.55, 0.60, 1.0))
 	if is_instance_valid(_vib_circle):
-		var sty := StyleBoxFlat.new()
-		sty.bg_color = Color(0.62, 0.12, 0.92, 0.95) if on else Color(0.22, 0.22, 0.26, 0.7)
-		sty.set_corner_radius_all(int(_vib_circle.size.x * 0.5))
-		_vib_circle.add_theme_stylebox_override("panel", sty)
+		var sty2 := StyleBoxFlat.new()
+		sty2.bg_color = Color(0.62, 0.12, 0.92, 0.95) if on else Color(0.22, 0.22, 0.26, 0.7)
+		sty2.set_corner_radius_all(int(_vib_circle.size.x * 0.5))
+		_vib_circle.add_theme_stylebox_override("panel", sty2)
 
 func _on_tutorial_toggle() -> void:
 	Global.seen_tutorial = not Global.seen_tutorial
@@ -384,10 +391,10 @@ func _on_tutorial_toggle() -> void:
 		_tutorial_label.add_theme_color_override("font_color",
 			Color(0.22, 0.92, 0.86, 1.0) if tutorial_on else Color(0.55, 0.55, 0.60, 1.0))
 	if is_instance_valid(_tut_circle):
-		var sty := StyleBoxFlat.new()
-		sty.bg_color = Color(0.62, 0.12, 0.92, 0.95) if tutorial_on else Color(0.22, 0.22, 0.26, 0.7)
-		sty.set_corner_radius_all(int(_tut_circle.size.x * 0.5))
-		_tut_circle.add_theme_stylebox_override("panel", sty)
+		var sty2 := StyleBoxFlat.new()
+		sty2.bg_color = Color(0.62, 0.12, 0.92, 0.95) if tutorial_on else Color(0.22, 0.22, 0.26, 0.7)
+		sty2.set_corner_radius_all(int(_tut_circle.size.x * 0.5))
+		_tut_circle.add_theme_stylebox_override("panel", sty2)
 
 func _on_settings_save() -> void:
 	Global.save_audio_settings()   # persists music, sfx, vibration, seen flags
