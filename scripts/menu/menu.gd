@@ -182,17 +182,17 @@ func _build_settings_panel() -> void:
 
 	# ── Background image ────────────────────────────────────────────────────────
 	const IMG := "res://scenes/menu/settings_screen.png"
-	if ResourceLoader.exists(IMG):
-		var tex: Texture2D = load(IMG)
-		if tex:
-			var bg := TextureRect.new()
-			bg.texture      = tex
-			bg.expand_mode  = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-			bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			bg.size         = vp
-			bg.position     = Vector2.ZERO
-			bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_settings_panel.add_child(bg)
+	var _img_raw := Image.load_from_file(ProjectSettings.globalize_path(IMG))
+	var _img_tex: Texture2D = ImageTexture.create_from_image(_img_raw) if _img_raw else null
+	if _img_tex:
+		var bg := TextureRect.new()
+		bg.texture      = _img_tex
+		bg.expand_mode  = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		bg.size         = vp
+		bg.position     = Vector2.ZERO
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_settings_panel.add_child(bg)
 
 	# ── Positions as fractions of screen size (image fills 720×1280 exactly) ──
 	# MUSIC  slider:    y=29-37%   x=26-90%

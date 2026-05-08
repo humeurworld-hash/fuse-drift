@@ -48,17 +48,17 @@ func _build_image_screen() -> void:
 	var H   := vp.y
 
 	# Background image
-	if ResourceLoader.exists(IMG_PATH):
-		var tex: Texture2D = load(IMG_PATH)
-		if tex:
-			var bg := TextureRect.new()
-			bg.texture      = tex
-			bg.expand_mode  = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-			bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			bg.size         = vp
-			bg.position     = Vector2.ZERO
-			bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			$UI.add_child(bg)
+	var _bg_raw := Image.load_from_file(ProjectSettings.globalize_path(IMG_PATH))
+	var _bg_tex: Texture2D = ImageTexture.create_from_image(_bg_raw) if _bg_raw else null
+	if _bg_tex:
+		var bg := TextureRect.new()
+		bg.texture      = _bg_tex
+		bg.expand_mode  = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		bg.size         = vp
+		bg.position     = Vector2.ZERO
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		$UI.add_child(bg)
 
 	# ── Level button rows (measured as fractions of 720×1280) ─────────────────
 	# THE CAVE:  y 27–44 %

@@ -238,9 +238,8 @@ func _style_button(btn: Button, normal: Color, hover: Color, border: Color) -> v
 
 func _setup_pause_image() -> void:
 	const PATH := "res://scenes/game/paused_screen.png"
-	if not ResourceLoader.exists(PATH):
-		return
-	var tex: Texture2D = load(PATH)
+	var _raw := Image.load_from_file(ProjectSettings.globalize_path(PATH))
+	var tex: Texture2D = ImageTexture.create_from_image(_raw) if _raw else null
 	if tex == null:
 		return
 
