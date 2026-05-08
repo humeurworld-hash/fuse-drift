@@ -33,9 +33,11 @@ const LEVEL_NAMES := {
 var _continue_level: int = 1
 
 # Settings panel (built in code)
-var _settings_panel: Panel = null
-var _music_slider:   HSlider = null
-var _sfx_slider:     HSlider = null
+var _settings_panel:   Panel   = null
+var _music_slider:     HSlider = null
+var _sfx_slider:       HSlider = null
+var _vibration_label:  Label   = null
+var _tutorial_label:   Label   = null
 
 # Fuse idle sprite
 var _fuse_sprite: Sprite2D = null
@@ -166,132 +168,133 @@ func _start_fuse_bob() -> void:
 	_fuse_bob_tween.tween_property(_fuse_sprite, "position:y",
 		_fuse_sprite.position.y + 18.0, 1.35).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
-# ── Settings panel (built in code) ───────────────────────────────────────────
+# ── Settings panel — image-based ─────────────────────────────────────────────
 
 func _build_settings_panel() -> void:
 	var vp := get_viewport_rect().size
-	const PW_RATIO  := 0.82
-	const MARGIN    := 32.0
-	const PH        := 400.0   # panel height — fits header + 2 sliders + 2 buttons
 
 	_settings_panel = Panel.new()
-	_settings_panel.size = Vector2(vp.x * PW_RATIO, PH)
-	_settings_panel.position = Vector2((vp.x - _settings_panel.size.x) * 0.5, vp.y * 0.25)
+	_settings_panel.size     = vp
+	_settings_panel.position = Vector2.ZERO
 	_settings_panel.modulate = Color(1, 1, 1, 0)
-	_settings_panel.visible = false
-	var sty := StyleBoxFlat.new()
-	sty.bg_color = Color(0.04, 0.06, 0.12, 0.96)
-	sty.border_color = Color(0.22, 0.78, 0.92, 1.0)
-	sty.set_border_width_all(2)
-	sty.set_corner_radius_all(12)
-	_settings_panel.add_theme_stylebox_override("panel", sty)
+	_settings_panel.visible  = false
+	_settings_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 
-	var pw := _settings_panel.size.x
+	# ── Background image ────────────────────────────────────────────────────────
+	const IMG := "res://scenes/menu/settings_screen.png"
+	if ResourceLoader.exists(IMG):
+		var tex: Texture2D = load(IMG)
+		if tex:
+			var bg := TextureRect.new()
+			bg.texture      = tex
+			bg.expand_mode  = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			bg.size         = vp
+			bg.position     = Vector2.ZERO
+			bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_settings_panel.add_child(bg)
 
-	# ── Header ──────────────────────────────────────────────────────────────────
-	var header := Label.new()
-	header.text = "SETTINGS"
-	header.add_theme_font_size_override("font_size", 36)
-	header.add_theme_color_override("font_color", Color(0.22, 0.88, 1.0, 1.0))
-	header.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
-	header.add_theme_constant_override("shadow_offset_y", 2)
-	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	header.size = Vector2(pw, 52.0)
-	header.position = Vector2(0.0, 16.0)
-	_settings_panel.add_child(header)
+	# ── Positions as fractions of screen size (image fills 720×1280 exactly) ──
+	# MUSIC  slider:    y=29-37%   x=26-90%
+	# SFX    slider:    y=44-52%   x=26-90%
+	# VIBRATION toggle: y=58-69%   x=60-87%
+	# TUTORIAL  toggle: y=72-82%   x=60-87%
+	# SAVE button:      y=84-92%   x=8-92%
+	# BACK button:      y=93-100%  x=8-92%
 
-	# ── Music row  (label + value at y=80, slider at y=110) ──────────────────
-	_music_slider = _make_slider_row(
-		_settings_panel, "Music", 80.0, Global.music_volume,
-		Color(0.22, 0.88, 0.70, 1.0))
+	var W := vp.x
+	var H := vp.y
+
+	# ── MUSIC slider ──────────────────────────────────────────────────────────
+	_music_slider = _make_image_slider(
+		Vector2(W * 0.26, H * 0.29), Vector2(W * 0.64, H * 0.08),
+		Global.music_volume, Color(0.22, 0.90, 0.70, 1.0))
 	_music_slider.value_changed.connect(_on_music_changed)
+	_settings_panel.add_child(_music_slider)
 
-	# ── SFX row  (label + value at y=180, slider at y=210) ───────────────────
-	_sfx_slider = _make_slider_row(
-		_settings_panel, "SFX", 180.0, Global.sfx_volume,
-		Color(0.22, 0.70, 1.00, 1.0))
+	# ── SFX slider ────────────────────────────────────────────────────────────
+	_sfx_slider = _make_image_slider(
+		Vector2(W * 0.26, H * 0.44), Vector2(W * 0.64, H * 0.08),
+		Global.sfx_volume, Color(0.22, 0.70, 1.00, 1.0))
 	_sfx_slider.value_changed.connect(_on_sfx_changed)
+	_settings_panel.add_child(_sfx_slider)
 
-	# ── REPLAY INTRO  (y=270) ────────────────────────────────────────────────
-	var replay_intro_btn := Button.new()
-	replay_intro_btn.text = "REPLAY INTRO"
-	replay_intro_btn.size = Vector2(pw - MARGIN * 2.0, 46.0)
-	replay_intro_btn.position = Vector2(MARGIN, 270.0)
-	replay_intro_btn.add_theme_font_size_override("font_size", 18)
-	var rs := StyleBoxFlat.new()
-	rs.bg_color = Color(0.08, 0.22, 0.14, 1.0)
-	rs.border_color = Color(0.22, 0.82, 0.58, 1.0)
-	rs.set_border_width_all(2)
-	rs.set_corner_radius_all(6)
-	replay_intro_btn.add_theme_stylebox_override("normal", rs)
-	replay_intro_btn.add_theme_color_override("font_color", Color(0.22, 0.92, 0.62, 1.0))
-	replay_intro_btn.pressed.connect(_on_replay_intro)
-	_settings_panel.add_child(replay_intro_btn)
+	# ── VIBRATION toggle ──────────────────────────────────────────────────────
+	_vibration_label = _make_state_label(
+		Vector2(W * 0.60, H * 0.585), Vector2(W * 0.27, H * 0.10),
+		Global.vibration_enabled)
+	_settings_panel.add_child(_vibration_label)
+	var vib_btn := _make_flat_btn(Vector2(W * 0.58, H * 0.575), Vector2(W * 0.31, H * 0.11))
+	vib_btn.pressed.connect(_on_vibration_toggle)
+	_settings_panel.add_child(vib_btn)
 
-	# ── CLOSE  (y=334) ───────────────────────────────────────────────────────
-	var close_btn := Button.new()
-	close_btn.text = "CLOSE"
-	close_btn.size = Vector2(180.0, 50.0)
-	close_btn.position = Vector2((pw - 180.0) * 0.5, 334.0)
-	close_btn.add_theme_font_size_override("font_size", 22)
-	var cs := StyleBoxFlat.new()
-	cs.bg_color = Color(0.10, 0.36, 0.60, 1.0)
-	cs.border_color = Color(0.22, 0.78, 1.0, 1.0)
-	cs.set_border_width_all(2)
-	cs.set_corner_radius_all(8)
-	close_btn.add_theme_stylebox_override("normal", cs)
-	close_btn.add_theme_color_override("font_color", Color(0.92, 0.96, 1.0, 1.0))
-	close_btn.pressed.connect(_close_settings)
-	_settings_panel.add_child(close_btn)
+	# ── TUTORIAL toggle ───────────────────────────────────────────────────────
+	_tutorial_label = _make_state_label(
+		Vector2(W * 0.60, H * 0.725), Vector2(W * 0.27, H * 0.10),
+		not Global.seen_tutorial)
+	_settings_panel.add_child(_tutorial_label)
+	var tut_btn := _make_flat_btn(Vector2(W * 0.58, H * 0.715), Vector2(W * 0.31, H * 0.11))
+	tut_btn.pressed.connect(_on_tutorial_toggle)
+	_settings_panel.add_child(tut_btn)
+
+	# ── SAVE button ───────────────────────────────────────────────────────────
+	var save_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.845), Vector2(W * 0.84, H * 0.075))
+	save_btn.pressed.connect(_on_settings_save)
+	_settings_panel.add_child(save_btn)
+
+	# ── BACK button ───────────────────────────────────────────────────────────
+	var back_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.928), Vector2(W * 0.84, H * 0.065))
+	back_btn.pressed.connect(_close_settings)
+	_settings_panel.add_child(back_btn)
 
 	ui_layer.add_child(_settings_panel)
 
-# y = top of the label row; slider sits 30px below the label
-func _make_slider_row(parent: Panel, label_text: String, y: float,
-		initial: float, col: Color) -> HSlider:
-	var pw := parent.size.x
-	const MARGIN := 32.0
-
-	var lbl := Label.new()
-	lbl.text = label_text
-	lbl.add_theme_font_size_override("font_size", 22)
-	lbl.add_theme_color_override("font_color", Color(0.88, 0.90, 0.95, 1.0))
-	lbl.position = Vector2(MARGIN, y)
-	parent.add_child(lbl)
-
-	var val_lbl := Label.new()
-	val_lbl.text = "%d%%" % int(initial * 100)
-	val_lbl.add_theme_font_size_override("font_size", 20)
-	val_lbl.add_theme_color_override("font_color", col)
-	val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	val_lbl.size = Vector2(64.0, 30.0)
-	val_lbl.position = Vector2(pw - MARGIN - 64.0, y)
-	parent.add_child(val_lbl)
-
+# Invisible HSlider with transparent track — image artwork shows through,
+# only the teal fill and thumb are visible.
+func _make_image_slider(pos: Vector2, sz: Vector2, initial: float, col: Color) -> HSlider:
 	var slider := HSlider.new()
 	slider.min_value = 0.0
 	slider.max_value = 1.0
-	slider.step = 0.01
-	slider.value = initial
-	slider.size = Vector2(pw - MARGIN * 2.0, 36.0)
-	slider.position = Vector2(MARGIN, y + 32.0)
-	var fill_sty := StyleBoxFlat.new()
-	fill_sty.bg_color = col
-	fill_sty.set_corner_radius_all(4)
-	var bg_sty := StyleBoxFlat.new()
-	bg_sty.bg_color = Color(0.14, 0.18, 0.28, 1.0)
-	bg_sty.set_corner_radius_all(4)
-	slider.add_theme_stylebox_override("fill", fill_sty)
-	slider.add_theme_stylebox_override("slider", bg_sty)
-	slider.value_changed.connect(func(v: float): val_lbl.text = "%d%%" % int(v * 100))
-	parent.add_child(slider)
+	slider.step      = 0.01
+	slider.value     = initial
+	slider.size      = sz
+	slider.position  = pos
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = col.darkened(0.2)
+	fill.set_corner_radius_all(4)
+	var track := StyleBoxEmpty.new()   # transparent — image track shows through
+	slider.add_theme_stylebox_override("fill",   fill)
+	slider.add_theme_stylebox_override("slider", track)
+	slider.add_theme_color_override("grabber_color", col)
 	return slider
 
-# ── Settings callbacks ────────────────────────────────────────────────────────
+# Small teal ON/OFF label overlaid on the toggle artwork
+func _make_state_label(pos: Vector2, sz: Vector2, is_on: bool) -> Label:
+	var lbl := Label.new()
+	lbl.text = "ON" if is_on else "OFF"
+	lbl.add_theme_font_size_override("font_size", 22)
+	lbl.add_theme_color_override("font_color",
+		Color(0.22, 0.92, 0.86, 1.0) if is_on else Color(0.55, 0.55, 0.60, 1.0))
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
+	lbl.size     = sz
+	lbl.position = pos
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return lbl
 
-func _on_replay_intro() -> void:
-	Global.reset_seen_flags()
-	_close_settings()
+# Fully transparent button (no visible style) — just a hit area
+func _make_flat_btn(pos: Vector2, sz: Vector2) -> Button:
+	var btn := Button.new()
+	btn.flat = true
+	var empty := StyleBoxEmpty.new()
+	for state in ["normal","hover","pressed","focus","disabled"]:
+		btn.add_theme_stylebox_override(state, empty)
+	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	btn.size     = sz
+	btn.position = pos
+	return btn
+
+# ── Settings callbacks ────────────────────────────────────────────────────────
 
 func _on_music_changed(value: float) -> void:
 	Global.music_volume = value
@@ -301,6 +304,26 @@ func _on_sfx_changed(value: float) -> void:
 	Global.sfx_volume = value
 	Global.apply_sfx_volume()
 	Global.save_audio_settings()
+
+func _on_vibration_toggle() -> void:
+	Global.vibration_enabled = not Global.vibration_enabled
+	if is_instance_valid(_vibration_label):
+		_vibration_label.text = "ON" if Global.vibration_enabled else "OFF"
+		_vibration_label.add_theme_color_override("font_color",
+			Color(0.22, 0.92, 0.86, 1.0) if Global.vibration_enabled else Color(0.55, 0.55, 0.60, 1.0))
+
+func _on_tutorial_toggle() -> void:
+	# seen_tutorial=false means "show it again" (ON); flip the flag
+	Global.seen_tutorial = not Global.seen_tutorial
+	var tutorial_on := not Global.seen_tutorial
+	if is_instance_valid(_tutorial_label):
+		_tutorial_label.text = "ON" if tutorial_on else "OFF"
+		_tutorial_label.add_theme_color_override("font_color",
+			Color(0.22, 0.92, 0.86, 1.0) if tutorial_on else Color(0.55, 0.55, 0.60, 1.0))
+
+func _on_settings_save() -> void:
+	Global.save_audio_settings()   # persists music, sfx, vibration, seen flags
+	_close_settings()
 
 func _on_settings() -> void:
 	if _settings_panel == null:

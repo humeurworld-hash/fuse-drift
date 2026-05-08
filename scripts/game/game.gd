@@ -236,6 +236,66 @@ func _style_button(btn: Button, normal: Color, hover: Color, border: Color) -> v
 	btn.add_theme_color_override("font_pressed_color", Color(0.78, 0.90, 1.00, 1.0))
 	btn.add_theme_color_override("font_disabled_color",Color(0.55, 0.55, 0.60, 1.0))
 
+func _setup_pause_image() -> void:
+	const PATH := "res://scenes/game/paused_screen.png"
+	if not ResourceLoader.exists(PATH):
+		return
+	var tex: Texture2D = load(PATH)
+	if tex == null:
+		return
+
+	var vp := get_viewport_rect().size
+
+	# Make the panel fill the screen with transparent background
+	pause_panel.size     = vp
+	pause_panel.position = Vector2.ZERO
+	pause_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+
+	# Image fills the panel
+	var img := TextureRect.new()
+	img.texture      = tex
+	img.expand_mode  = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	img.size         = vp
+	img.position     = Vector2.ZERO
+	img.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pause_panel.add_child(img)
+	pause_panel.move_child(img, 0)
+
+	# Hide original buttons — replaced by image-positioned ones below
+	resume_button.visible    = false
+	pause_menu_button.visible = false
+
+	# ── Transparent buttons placed over artwork ─────────────────────────────
+	# Image is 941×1672, viewport 720×1280 — same aspect, fills perfectly.
+	# Positions measured as fractions of screen size.
+	var btns := [
+		# [label_for_debug, y_frac, h_frac, callback]
+		["RESUME",  0.46, 0.115, _on_resume],
+		["RESTART", 0.595, 0.115, _on_pause_restart],
+		["QUIT",    0.735, 0.115, _on_pause_menu],
+	]
+	var bx := vp.x * 0.10
+	var bw := vp.x * 0.80
+
+	for data in btns:
+		var btn := Button.new()
+		btn.flat = true
+		var empty := StyleBoxEmpty.new()
+		for state in ["normal","hover","pressed","focus","disabled"]:
+			btn.add_theme_stylebox_override(state, empty)
+		btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		btn.size     = Vector2(bw, vp.y * float(data[2]))
+		btn.position = Vector2(bx, vp.y * float(data[1]))
+		btn.process_mode = Node.PROCESS_MODE_ALWAYS
+		btn.pressed.connect(data[3] as Callable)
+		pause_panel.add_child(btn)
+
+func _on_pause_restart() -> void:
+	get_tree().paused = false
+	pause_panel.visible = false
+	_restart_current_level()
+
 func _connect_signals() -> void:
 	music_player.finished.connect(_on_music_finished)
 	pause_button.pressed.connect(_on_pause)
@@ -296,6 +356,7 @@ func _setup_ui() -> void:
 	replay_button.text = "REPLAY"
 	clear_menu_button.text = "MENU"
 	pause_panel.visible = false
+	_setup_pause_image()
 	wave_banner.visible = false
 	wave_banner.modulate = Color(1, 1, 1, 0)
 	fuse_banner.visible = false
@@ -920,6 +981,8 @@ func _on_player_hit() -> void:
 	if slow_time_active:
 		_deactivate_slow_time()
 	state = GameState.DEAD
+	if Global.vibration_enabled:
+		Input.vibrate_handheld(350)
 	level1_spawner.stop_run()
 	level2_spawner.stop_run()
 	level3_spawner.stop_run()
