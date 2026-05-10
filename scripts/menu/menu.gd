@@ -33,13 +33,11 @@ const LEVEL_NAMES := {
 var _continue_level: int = 1
 
 # Settings panel (built in code)
-var _settings_panel:   Panel   = null
-var _music_slider:     HSlider = null
-var _sfx_slider:       HSlider = null
-var _vib_circle:       Panel   = null
-var _tut_circle:       Panel   = null
-var _vibration_label:  Label   = null
-var _tutorial_label:   Label   = null
+var _settings_panel:  Panel   = null
+var _music_slider:    HSlider = null
+var _sfx_slider:      HSlider = null
+var _vib_circle:      Panel   = null
+var _tut_circle:      Panel   = null
 
 # Fuse idle sprite
 var _fuse_sprite: Sprite2D = null
@@ -209,55 +207,42 @@ func _build_settings_panel() -> void:
 	var W := vp.x
 	var H := vp.y
 
-	# Slider track height — comfortable mobile grab, fits within image box height
-	# Image pixel analysis:
-	#   MUSIC box:  y=27%–36% of screen  → slider centered at y=31.5%
-	#   SFX   box:  y=36%–48% of screen  → slider centered at y=42%
-	#   x range: boxes span ~5%–95%; slider inset to 8%–92%
-	var sh := H * 0.048          # track height (fits inside 9% row with padding)
-	var sx := W * 0.08           # left edge (inside 5% box border)
-	var sw := W * 0.84           # width (ends at 92%, inside 95% box border)
+	# Slider track height
+	var sh := H * 0.048
 
-	# ── MUSIC slider — centered in MUSIC box (27%–36%) ─────────────────────────
+	# ── MUSIC slider — measured from user annotation:
+	#   left=0% at x=29.8%, right=100% at x=97.9%, center y=31.5%
 	_music_slider = _make_styled_slider(
-		Vector2(sx, H * 0.315 - sh * 0.5), Vector2(sw, sh),
+		Vector2(W * 0.298, H * 0.315 - sh * 0.5), Vector2(W * 0.681, sh),
 		Global.music_volume, Color(0.18, 0.88, 0.72, 1.0))
 	_music_slider.value_changed.connect(_on_music_changed)
 	_settings_panel.add_child(_music_slider)
 
-	# ── SFX slider — centered in SFX box (36%–48%) ──────────────────────────────
+	# ── SFX slider — measured from user annotation:
+	#   left=0% at x=22.2%, right=100% at x=94.2%, center y=42%
 	_sfx_slider = _make_styled_slider(
-		Vector2(sx, H * 0.420 - sh * 0.5), Vector2(sw, sh),
+		Vector2(W * 0.222, H * 0.420 - sh * 0.5), Vector2(W * 0.719, sh),
 		Global.sfx_volume, Color(0.18, 0.68, 1.00, 1.0))
 	_sfx_slider.value_changed.connect(_on_sfx_changed)
 	_settings_panel.add_child(_sfx_slider)
 
-	# ── VIBRATION toggle — full row button + purple circle indicator ──────────
-	# Circle sits exactly over the teal dot baked into the image
-	var cs := W * 0.052          # smaller circle — matches the image dot size
+	# ── VIBRATION toggle — circle at measured X mark position (91.1%, 52.5%)
+	var cs := W * 0.058
 	_vib_circle = _make_circle_panel(
-		Vector2(W * 0.820 - cs * 0.5, H * 0.540 - cs * 0.5), cs,
+		Vector2(W * 0.911 - cs * 0.5, H * 0.525 - cs * 0.5), cs,
 		Color(0.62, 0.12, 0.92, 0.95) if Global.vibration_enabled else Color(0.22, 0.22, 0.26, 0.7))
 	_settings_panel.add_child(_vib_circle)
-	_vibration_label = _make_state_label(
-		Vector2(W * 0.60, H * 0.518), Vector2(W * 0.18, H * 0.050),
-		Global.vibration_enabled)
-	_settings_panel.add_child(_vibration_label)
 	var vib_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.483), Vector2(W * 0.84, H * 0.115))
 	vib_btn.pressed.connect(_on_vibration_toggle)
 	_settings_panel.add_child(vib_btn)
 
-	# ── TUTORIAL toggle — full row button + purple circle indicator ───────────
+	# ── TUTORIAL toggle — circle at measured X mark position (91.2%, 62.1%)
 	var tutorial_on := not Global.seen_tutorial
 	_tut_circle = _make_circle_panel(
-		Vector2(W * 0.820 - cs * 0.5, H * 0.690 - cs * 0.5), cs,
+		Vector2(W * 0.912 - cs * 0.5, H * 0.621 - cs * 0.5), cs,
 		Color(0.62, 0.12, 0.92, 0.95) if tutorial_on else Color(0.22, 0.22, 0.26, 0.7))
 	_settings_panel.add_child(_tut_circle)
-	_tutorial_label = _make_state_label(
-		Vector2(W * 0.60, H * 0.667), Vector2(W * 0.18, H * 0.050),
-		tutorial_on)
-	_settings_panel.add_child(_tutorial_label)
-	var tut_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.633), Vector2(W * 0.84, H * 0.115))
+	var tut_btn := _make_flat_btn(Vector2(W * 0.08, H * 0.590), Vector2(W * 0.84, H * 0.115))
 	tut_btn.pressed.connect(_on_tutorial_toggle)
 	_settings_panel.add_child(tut_btn)
 
@@ -272,20 +257,6 @@ func _build_settings_panel() -> void:
 	_settings_panel.add_child(back_btn)
 
 	ui_layer.add_child(_settings_panel)
-
-# Small teal ON/OFF label overlaid on the toggle artwork
-func _make_state_label(pos: Vector2, sz: Vector2, is_on: bool) -> Label:
-	var lbl := Label.new()
-	lbl.text = "ON" if is_on else "OFF"
-	lbl.add_theme_font_size_override("font_size", 22)
-	lbl.add_theme_color_override("font_color",
-		Color(0.22, 0.92, 0.86, 1.0) if is_on else Color(0.55, 0.55, 0.60, 1.0))
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
-	lbl.size     = sz
-	lbl.position = pos
-	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return lbl
 
 # Fully transparent button (no visible style) — just a hit area
 func _make_flat_btn(pos: Vector2, sz: Vector2) -> Button:
@@ -351,24 +322,15 @@ func _on_sfx_changed(value: float) -> void:
 
 func _on_vibration_toggle() -> void:
 	Global.vibration_enabled = not Global.vibration_enabled
-	var on := Global.vibration_enabled
-	if is_instance_valid(_vibration_label):
-		_vibration_label.text = "ON" if on else "OFF"
-		_vibration_label.add_theme_color_override("font_color",
-			Color(0.22, 0.92, 0.86, 1.0) if on else Color(0.55, 0.55, 0.60, 1.0))
 	if is_instance_valid(_vib_circle):
 		var sty2 := StyleBoxFlat.new()
-		sty2.bg_color = Color(0.62, 0.12, 0.92, 0.95) if on else Color(0.22, 0.22, 0.26, 0.7)
+		sty2.bg_color = Color(0.62, 0.12, 0.92, 0.95) if Global.vibration_enabled else Color(0.22, 0.22, 0.26, 0.7)
 		sty2.set_corner_radius_all(int(_vib_circle.size.x * 0.5))
 		_vib_circle.add_theme_stylebox_override("panel", sty2)
 
 func _on_tutorial_toggle() -> void:
 	Global.seen_tutorial = not Global.seen_tutorial
 	var tutorial_on := not Global.seen_tutorial
-	if is_instance_valid(_tutorial_label):
-		_tutorial_label.text = "ON" if tutorial_on else "OFF"
-		_tutorial_label.add_theme_color_override("font_color",
-			Color(0.22, 0.92, 0.86, 1.0) if tutorial_on else Color(0.55, 0.55, 0.60, 1.0))
 	if is_instance_valid(_tut_circle):
 		var sty2 := StyleBoxFlat.new()
 		sty2.bg_color = Color(0.62, 0.12, 0.92, 0.95) if tutorial_on else Color(0.22, 0.22, 0.26, 0.7)
