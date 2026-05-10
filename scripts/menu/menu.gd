@@ -210,20 +210,21 @@ func _build_settings_panel() -> void:
 	var H := vp.y
 
 	# Slider track height — big enough for a comfortable mobile grab
-	var sh := H * 0.068
-	var sx := W * 0.10
-	var sw := W * 0.80
+	# Inset from box edges: x 13%→87%, so line stays inside the artwork border
+	var sh := H * 0.055
+	var sx := W * 0.13
+	var sw := W * 0.74
 
-	# ── MUSIC slider (inside the MUSIC row box, y ≈ 17–29 %) ─────────────────
+	# ── MUSIC slider (inside the MUSIC row box) ───────────────────────────────
 	_music_slider = _make_styled_slider(
-		Vector2(sx, H * 0.195), Vector2(sw, sh),
+		Vector2(sx, H * 0.205), Vector2(sw, sh),
 		Global.music_volume, Color(0.18, 0.88, 0.72, 1.0))
 	_music_slider.value_changed.connect(_on_music_changed)
 	_settings_panel.add_child(_music_slider)
 
-	# ── SFX slider (inside the SFX row box, y ≈ 33–44 %) ────────────────────
+	# ── SFX slider (inside the SFX row box) ──────────────────────────────────
 	_sfx_slider = _make_styled_slider(
-		Vector2(sx, H * 0.350), Vector2(sw, sh),
+		Vector2(sx, H * 0.360), Vector2(sw, sh),
 		Global.sfx_volume, Color(0.18, 0.68, 1.00, 1.0))
 	_sfx_slider.value_changed.connect(_on_sfx_changed)
 	_settings_panel.add_child(_sfx_slider)
@@ -311,8 +312,8 @@ func _make_styled_slider(pos: Vector2, sz: Vector2, initial: float, col: Color) 
 	track.border_color = col.darkened(0.25)
 	track.set_border_width_all(2)
 	track.set_corner_radius_all(cr)
-	track.content_margin_left  = sz.y * 0.6
-	track.content_margin_right = sz.y * 0.6
+	track.content_margin_left  = sz.y * 0.35
+	track.content_margin_right = sz.y * 0.35
 	slider.add_theme_stylebox_override("slider", track)
 	# Fill
 	var fill := StyleBoxFlat.new()
