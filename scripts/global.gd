@@ -40,7 +40,8 @@ const BG_COLOR := Color(0.03, 0.05, 0.09)
 #   note      — one-line banner shown at level start when something is new
 const LEVELS := [
 	{ "moves": 25, "colors": 3, "goals": { 0: 15, 1: 15 },                       "veils": 0,
-		"exposure": 0,  "resonance": 0.0,  "echo": 0 },
+		"exposure": 0,  "resonance": 0.0,  "echo": 0,
+		"note": "Drag between neighbouring shards of one hue — diagonals count." },
 	{ "moves": 24, "colors": 3, "goals": { 0: 14, 1: 14, 2: 14 },                "veils": 0,
 		"exposure": 30, "resonance": 0.0,  "echo": 0,
 		"note": "The Canvas is watching. Gathering raises Exposure — loops spike it." },
@@ -48,7 +49,7 @@ const LEVELS := [
 		"exposure": 30, "resonance": 0.0,  "echo": 0 },
 	{ "moves": 22, "colors": 4, "goals": { 0: 13, 1: 13, 2: 13, 3: 13 },         "veils": 0,
 		"exposure": 28, "resonance": 0.06, "echo": 0,
-		"note": "A resonance. Resonant shards join any thread." },
+		"note": "A resonance. Weave through one and your thread can change hue and keep going." },
 	{ "moves": 22, "colors": 4, "goals": { 1: 20 },                              "veils": 4,
 		"exposure": 28, "resonance": 0.06, "echo": 0,
 		"note": "Veiled shards can't be woven. Gather beside them to lift the veil." },

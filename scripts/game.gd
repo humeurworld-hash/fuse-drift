@@ -38,6 +38,10 @@ const LOOP_EXPOSURE := 6
 var res_chance := 0.0    # chance a spawned shard is resonant
 var echo_count := 0      # echo shards maintained on the board
 var thread_color := -1   # hue of the current thread (-1 = only resonants so far)
+var switch_armed := false  # last woven shard was resonant: next may be any hue
+
+const MIN_LOOP := 4          # distinct shards needed to close a loop
+const CHAIN_RESONANT := 8    # chain this long and a new resonant shard forms
 
 var board_origin := Vector2.ZERO   # centre of the top-left cell
 var grid: Array = []               # grid[col][row] -> MourkDot or null (row 0 = top)
@@ -210,7 +214,7 @@ func _start_drag(pos: Vector2) -> void:
 	dragging = true
 	loop_closed = false
 	path = [cell]
-	thread_color = -1 if d.resonant else d.color_idx
+	_recompute_thread()
 	drag_pos = pos
 	d.bump()
 	line_layer.queue_redraw()
@@ -225,17 +229,23 @@ func _update_drag(pos: Vector2) -> void:
 		var last: Vector2i = path[path.size() - 1]
 		if cell != last:
 			if path.size() >= 2 and cell == path[path.size() - 2]:
-				# Backtrack: unweave the last mote.
+				# Backtrack: unweave the last shard.
 				path.pop_back()
 				loop_closed = _path_has_repeat()
+				_recompute_thread()
 			elif not loop_closed and _adjacent(cell, last):
 				var d: MourkDot = _dot_at(cell)
-				if d != null and not d.veiled \
-					and (d.resonant or thread_color < 0 or d.color_idx == thread_color):
-					if not d.resonant and thread_color < 0:
-						thread_color = d.color_idx
-					var closes := path.has(cell)
+				if d != null and not d.veiled and _may_weave(d):
+					# Closing a loop needs MIN_LOOP distinct shards. Without
+					# this, diagonals would let three shards in an L close a
+					# loop — and a loop clears the entire hue.
+					var idx := path.find(cell)
+					var closes := idx >= 0
+					if closes and path.size() - idx < MIN_LOOP:
+						line_layer.queue_redraw()
+						return
 					path.append(cell)
+					_recompute_thread()
 					d.bump()
 					if closes:
 						loop_closed = true
@@ -309,6 +319,10 @@ func _resolve(cells: Array, color: int, was_loop := false) -> void:
 	_tick_echoes()
 	_maintain_echoes()
 
+	# A long enough chain condenses a new resonance out of the gathered Mourk.
+	if res_chance > 0.0 and cells.size() >= CHAIN_RESONANT:
+		_form_resonant()
+
 	if exposure_max > 0 and exposure >= exposure_max:
 		await _canvas_scan()
 
@@ -319,6 +333,23 @@ func _resolve(cells: Array, color: int, was_loop := false) -> void:
 	else:
 		_ensure_move_exists()
 		busy = false
+
+
+func _form_resonant() -> void:
+	var candidates: Array = []
+	for c in COLS:
+		for r in ROWS:
+			var d: MourkDot = grid[c][r]
+			if d != null and not d.veiled and not d.resonant and d.echo_timer <= 0:
+				candidates.append(d)
+	if candidates.is_empty():
+		return
+	var d: MourkDot = candidates[randi() % candidates.size()]
+	d.resonant = true
+	d.queue_redraw()
+	d.bump()
+	_show_banner("RESONANCE", 1.2, Color(0.92, 0.94, 1.0), 32,
+		board_origin.y + (ROWS - 1) * CELL * 0.5 - 24.0)
 
 
 func _tick_echoes() -> void:
@@ -420,7 +451,7 @@ func _has_move() -> bool:
 			var d: MourkDot = grid[c][r]
 			if d == null or d.veiled:
 				continue
-			for n in [Vector2i(c + 1, r), Vector2i(c, r + 1)]:
+			for n in _neighbours(Vector2i(c, r)):
 				var nd: MourkDot = _dot_at(n)
 				if nd != null and not nd.veiled \
 					and (nd.resonant or d.resonant or nd.color_idx == d.color_idx):
@@ -485,7 +516,7 @@ func _build_hud(vp: Vector2) -> void:
 		exposure_bar.custom_minimum_size = Vector2(0, 46)
 		hud.add_child(exposure_bar)
 
-	var hint := UIH.make_label("Close a loop to gather every shard of its hue.", 20, Color(0.42, 0.46, 0.58))
+	var hint := UIH.make_label("Weave any direction. Close a loop to gather a whole hue.", 20, Color(0.42, 0.46, 0.58))
 	hint.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	hint.position.y = -70
 	hud.add_child(hint)
@@ -623,14 +654,44 @@ func _dot_at(cell: Vector2i) -> MourkDot:
 
 
 func _adjacent(a: Vector2i, b: Vector2i) -> bool:
-	return absi(a.x - b.x) + absi(a.y - b.y) == 1
+	# 8-way: threads may run diagonally.
+	var dx := absi(a.x - b.x)
+	var dy := absi(a.y - b.y)
+	return maxi(dx, dy) == 1 and (dx + dy) > 0
 
 
 func _neighbours(cell: Vector2i) -> Array[Vector2i]:
-	return [
-		Vector2i(cell.x + 1, cell.y), Vector2i(cell.x - 1, cell.y),
-		Vector2i(cell.x, cell.y + 1), Vector2i(cell.x, cell.y - 1),
-	]
+	var out: Array[Vector2i] = []
+	for dx in [-1, 0, 1]:
+		for dy in [-1, 0, 1]:
+			if dx != 0 or dy != 0:
+				out.append(Vector2i(cell.x + dx, cell.y + dy))
+	return out
+
+
+func _may_weave(d: MourkDot) -> bool:
+	# Resonant shards always join. A normal shard joins if it matches the
+	# thread's hue, starts it, or follows a resonant — which lets the thread
+	# switch hue and keep going.
+	if d.resonant:
+		return true
+	return thread_color < 0 or d.color_idx == thread_color or switch_armed
+
+
+func _recompute_thread() -> void:
+	# Derive thread hue and switch state from the path, so backtracking
+	# restores the previous state for free.
+	thread_color = -1
+	switch_armed = false
+	for cell in path:
+		var d: MourkDot = _dot_at(cell)
+		if d == null:
+			continue
+		if d.resonant:
+			switch_armed = true
+		else:
+			thread_color = d.color_idx
+			switch_armed = false
 
 
 func _path_has_repeat() -> bool:
@@ -660,29 +721,52 @@ class LineLayer extends Node2D:
 	func _init(p_game) -> void:
 		game = p_game
 
+	const RESONANT_COL := Color(0.92, 0.94, 1.0)
+
 	func _draw() -> void:
 		if game.path.is_empty():
 			return
-		var col: Color
-		if game.thread_color >= 0:
-			col = G.DOT_COLORS[game.thread_color].lightened(0.2)
-		else:
-			col = Color(0.92, 0.94, 1.0)   # all-resonant thread
-
+		# Per-point hue: the thread is drawn segment by segment so a switch
+		# through a resonance is visible as the colour changing mid-thread.
 		var pts := PackedVector2Array()
+		var cols: Array[Color] = []
+		var cur := -1
 		for cell in game.path:
 			pts.append(game._cell_pos(cell))
+			var d = game._dot_at(cell)
+			if d == null:
+				cols.append(RESONANT_COL)
+			elif d.resonant:
+				cols.append(RESONANT_COL)
+			else:
+				cur = d.color_idx
+				cols.append(G.DOT_COLORS[cur].lightened(0.2))
 		if game.dragging:
 			pts.append(game.drag_pos)
-		if pts.size() >= 2:
-			# Woven thread: wide soft aura + bright core.
-			var aura := col
-			aura.a = 0.35 if game.loop_closed else 0.22
-			draw_polyline(pts, aura, 26.0, true)
-			col.a = 0.95 if game.loop_closed else 0.8
-			draw_polyline(pts, col, 8.0, true)
-		for p in pts:
-			draw_circle(p, 6.0, col)
+			cols.append(RESONANT_COL if game.switch_armed or cur < 0
+				else G.DOT_COLORS[cur].lightened(0.2))
+
+		var core_a := 0.95 if game.loop_closed else 0.8
+		var aura_a := 0.35 if game.loop_closed else 0.22
+		for i in range(pts.size() - 1):
+			var seg := PackedVector2Array([pts[i], pts[i + 1]])
+			var c: Color = cols[i + 1]
+			var aura := c
+			aura.a = aura_a
+			draw_polyline(seg, aura, 26.0, true)
+			c.a = core_a
+			draw_polyline(seg, c, 8.0, true)
+		for i in pts.size():
+			draw_circle(pts[i], 6.0, cols[i])
+		# Live chain counter beside the thread's head — long chains form a
+		# resonance, so the player needs to see the count climbing.
+		if game.path.size() >= 3:
+			var head: Vector2 = pts[pts.size() - 1]
+			var label := str(game.path.size())
+			if game.path.size() >= game.CHAIN_RESONANT:
+				label += "  ✦"
+			draw_string(ThemeDB.fallback_font, head + Vector2(20, -18), label,
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(1, 1, 1, 0.92))
 
 
 class ScanSweep extends Node2D:
