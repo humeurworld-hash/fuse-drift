@@ -33,6 +33,7 @@ var switch_armed := false  # last woven shard was resonant: next may be any hue
 
 const MIN_LOOP := 4          # distinct shards needed to close a loop
 const CHAIN_RESONANT := 8    # chain this long and a new resonant shard forms
+const FACET_MIN := 3         # shards in a straight diagonal run to make a facet
 
 var board_origin := Vector2.ZERO   # centre of the top-left cell
 var grid: Array = []               # grid[col][row] -> MourkDot or null (row 0 = top)
@@ -266,6 +267,7 @@ func _end_drag() -> void:
 		return
 	var color := thread_color
 	var was_loop := loop_closed
+	var shape := _analyse_shape()
 	var cells := {}
 	if was_loop and color >= 0:
 		# Loop: every unveiled, non-resonant shard of the thread's hue...
@@ -277,15 +279,45 @@ func _end_drag() -> void:
 	# ...plus everything actually woven (covers resonants in the path).
 	for cell in path:
 		cells[cell] = true
+
+	# Shape bonuses. A facet sends a shockwave out along both flanks of the
+	# diagonal; a diamond collapses whatever it encircles, whatever hue it is.
+	if shape.facet >= FACET_MIN:
+		for c2 in _facet_flanks():
+			var fd: MourkDot = _dot_at(c2)
+			if fd != null and not fd.veiled:
+				cells[c2] = true
+	if shape.diamond:
+		var cd: MourkDot = _dot_at(shape.centre)
+		if cd != null and not cd.veiled:
+			cells[shape.centre] = true
+
+	var focus_pt := _cell_pos(path[path.size() - 1])
 	path.clear()
 	loop_closed = false
+	_update_focus()
 	line_layer.queue_redraw()
-	_resolve(cells.keys(), color, was_loop)
+	_resolve(cells.keys(), color, was_loop, shape, focus_pt)
+
+
+func _facet_flanks() -> Array[Vector2i]:
+	# Cells sitting either side of every straight diagonal step in the path.
+	var out: Array[Vector2i] = []
+	for i in range(path.size() - 1):
+		var step: Vector2i = path[i + 1] - path[i]
+		if step.x == 0 or step.y == 0:
+			continue
+		var perp := Vector2i(step.x, -step.y)
+		for cell in [path[i], path[i + 1]]:
+			out.append(cell + perp)
+			out.append(cell - perp)
+	return out
 
 
 # ── Resolution ────────────────────────────────────────────────────────────────
 
-func _resolve(cells: Array, color: int, was_loop := false) -> void:
+func _resolve(cells: Array, color: int, was_loop := false, shape := {},
+		focus_pt := Vector2.ZERO) -> void:
 	busy = true
 	moves_left -= 1
 
@@ -297,10 +329,14 @@ func _resolve(cells: Array, color: int, was_loop := false) -> void:
 				nd.unveil()
 				veils_left -= 1
 
-	# Count toward the hue goal and clear the motes. Gathering an echo shard
-	# before its countdown ends grants a bonus move.
-	if goals.has(color):
-		goals[color] = maxi(0, goals[color] - cells.size())
+	# Count each shard toward its own hue: shape bonuses pull in shards the
+	# thread never touched, so a bulk decrement against one hue would be wrong.
+	for cell in cells:
+		var d: MourkDot = _dot_at(cell)
+		if d != null and goals.has(d.color_idx):
+			goals[d.color_idx] = maxi(0, goals[d.color_idx] - 1)
+
+	# Gathering an echo shard before its countdown ends grants a bonus move.
 	for cell in cells:
 		var d: MourkDot = _dot_at(cell)
 		if d.echo_timer > 0:
@@ -311,6 +347,9 @@ func _resolve(cells: Array, color: int, was_loop := false) -> void:
 		tw.tween_property(d, "scale", Vector2(1.6, 1.6), 0.16).set_trans(Tween.TRANS_CUBIC)
 		tw.tween_property(d, "modulate", Color(1, 1, 1, 0), 0.16)
 		tw.chain().tween_callback(d.queue_free)
+
+	if not shape.is_empty():
+		_celebrate_shape(shape, color, cells, focus_pt)
 
 	_refresh_hud()
 	await get_tree().create_timer(0.18).timeout
@@ -329,6 +368,43 @@ func _resolve(cells: Array, color: int, was_loop := false) -> void:
 	else:
 		_ensure_move_exists()
 		busy = false
+
+
+func _celebrate_shape(shape: Dictionary, color: int, cells: Array, focus_pt: Vector2) -> void:
+	# Shapes stack, so a knotted diamond of facets pays out all three.
+	var hue: Color = G.DOT_COLORS[color] if color >= 0 else Color(0.92, 0.94, 1.0)
+	var centre := focus_pt
+	if not cells.is_empty():
+		centre = Vector2.ZERO
+		for cell in cells:
+			centre += _cell_pos(cell)
+		centre /= float(cells.size())
+
+	var title := ""
+	if shape.facet >= FACET_MIN:
+		title = "FACET"
+		_spawn_burst(centre, hue, 10, 150.0)
+	if shape.diamond:
+		title = "DIAMOND"
+		_spawn_burst(_cell_pos(shape.centre), hue, 16, 195.0)
+	if shape.knot:
+		# A true weave: the thread crossed itself. Worth a move back.
+		title = "WEAVE"
+		moves_left += 1
+		_spawn_burst(centre, Color(0.92, 0.94, 1.0), 20, 225.0)
+
+	if title != "":
+		# Sits just above the board so it never lands on top of the burst.
+		_show_banner(title, 1.0, hue.lightened(0.3), 40, board_origin.y - 96.0)
+
+
+func _spawn_burst(at: Vector2, col: Color, rays: int, radius: float) -> void:
+	var b := Burst.new()
+	b.position = at
+	b.col = col
+	b.rays = rays
+	b.max_radius = radius
+	add_child(b)
 
 
 func _form_resonant() -> void:
@@ -627,6 +703,73 @@ func _neighbours(cell: Vector2i) -> Array[Vector2i]:
 	return out
 
 
+func _analyse_shape() -> Dictionary:
+	# Reads the woven path for the three shapes diagonals make possible.
+	#   facet   — longest straight diagonal run, in shards
+	#   diamond — the closed loop is a 4-shard rhombus around a centre
+	#   knot    — two diagonal segments cross each other: a true weave
+	var out := { "facet": 0, "diamond": false, "knot": false, "centre": Vector2i.ZERO }
+	if path.size() < 2:
+		return out
+
+	# Longest straight diagonal run.
+	var best := 0
+	var i := 0
+	while i < path.size() - 1:
+		var step: Vector2i = path[i + 1] - path[i]
+		if step.x == 0 or step.y == 0:
+			i += 1
+			continue
+		var run := 2
+		var j := i + 1
+		while j < path.size() - 1 and (path[j + 1] - path[j]) == step:
+			run += 1
+			j += 1
+		best = maxi(best, run)
+		i = j
+	out.facet = best
+
+	# Diamond: a closed 4-shard loop whose centroid is a cell, each shard one
+	# orthogonal step from it. A 2x2 square centres between cells, so it can
+	# never match — square and diamond stay distinct shapes.
+	if loop_closed:
+		var idx := path.find(path[path.size() - 1])
+		var loop: Array = path.slice(idx, path.size() - 1)
+		if loop.size() == 4:
+			var sum := Vector2i.ZERO
+			for cell in loop:
+				sum += cell
+			if sum.x % 4 == 0 and sum.y % 4 == 0:
+				var centre := Vector2i(sum.x / 4, sum.y / 4)
+				var ok := true
+				for cell in loop:
+					var d: Vector2i = cell - centre
+					if absi(d.x) + absi(d.y) != 1:
+						ok = false
+						break
+				if ok:
+					out.diamond = true
+					out.centre = centre
+
+	# Knot: two diagonal segments sharing a midpoint are the two diagonals of
+	# one cell square, so the thread crosses itself.
+	for a in range(path.size() - 1):
+		var sa: Vector2i = path[a + 1] - path[a]
+		if sa.x == 0 or sa.y == 0:
+			continue
+		for b in range(a + 1, path.size() - 1):
+			var sb: Vector2i = path[b + 1] - path[b]
+			if sb.x == 0 or sb.y == 0:
+				continue
+			if path[a] + path[a + 1] == path[b] + path[b + 1] \
+				and path[a] != path[b] and path[a] != path[b + 1]:
+				out.knot = true
+				break
+		if out.knot:
+			break
+	return out
+
+
 func _may_weave(d: MourkDot) -> bool:
 	# Resonant shards always join. A normal shard joins if it matches the
 	# thread's hue, starts it, or follows a resonant — which lets the thread
@@ -726,6 +869,68 @@ class LineLayer extends Node2D:
 			draw_string(ThemeDB.fallback_font, head + Vector2(20, -18), label,
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(1, 1, 1, 0.92))
 
+
+
+class Burst extends Node2D:
+	# Shape payoff: a shockwave ring with light radiating out of it.
+	var col := Color.WHITE
+	var rays := 12
+	var max_radius := 150.0
+	var dur := 0.55
+	var _t := 0.0
+	var _spin := 0.0
+	var _len: Array[float] = []
+	var _wob: Array[float] = []
+	var _base: Array[float] = []
+
+	func _ready() -> void:
+		_spin = randf() * TAU
+		z_index = 40
+		# Uneven splinters read as shattering crystal; evenly spaced lines of
+		# equal length read as a radar sweep.
+		for i in rays:
+			_len.append(randf_range(0.62, 1.0))
+			_wob.append(randf_range(-0.09, 0.09))
+			_base.append(randf_range(0.55, 0.9))
+		set_process(true)
+
+	func _process(delta: float) -> void:
+		_t += delta / dur
+		if _t >= 1.0:
+			queue_free()
+			return
+		queue_redraw()
+
+	func _draw() -> void:
+		var e := 1.0 - pow(1.0 - _t, 3.0)   # fast out, slow settle
+		var fade := 1.0 - _t
+		var r := 18.0 + e * max_radius
+
+		# Broken shockwave arcs rather than a closed ring: a full circle with
+		# spokes inside it reads as a wheel, however thin it is drawn.
+		var ring := col.lightened(0.4)
+		ring.a = fade * fade * 0.55
+		for k in 3:
+			var a0 := _spin * 1.3 + TAU * float(k) / 3.0 + e * 0.5
+			draw_arc(Vector2.ZERO, r, a0, a0 + 1.15, 20, ring, 1.0 + 3.0 * fade)
+
+		# Crystal splinters thrown outward, tapering to a point.
+		for i in rays:
+			var ang := TAU * float(i) / float(rays) + _spin + _wob[i] + e * 0.3
+			var dir := Vector2(cos(ang), sin(ang))
+			var side := Vector2(-dir.y, dir.x)
+			var tip: Vector2 = dir * (r * _len[i] * 1.35)
+			var base: Vector2 = dir * (r * _len[i] * _base[i])
+			var w: float = (2.6 * fade + 0.5)
+			var shard := col.lightened(0.25)
+			shard.a = fade * 0.7
+			draw_colored_polygon(
+				PackedVector2Array([tip, base + side * w, base - side * w]), shard)
+
+		# White-hot core that collapses as the wave leaves.
+		var core := col.lightened(0.65)
+		core.a = fade * fade * 0.85
+		draw_circle(Vector2.ZERO, 15.0 * fade, core)
 
 
 class GoalChip extends Control:
