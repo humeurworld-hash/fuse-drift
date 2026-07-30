@@ -27,6 +27,22 @@ with a one-line note, then stays.
 | 5 | **Veils** | Grey, drained shards that can't be woven. Gather beside one to lift its veil. |
 | 7 | **Echo shards** | Carry a countdown badge. Each move ticks it down; at zero the Loops rewind every neighbouring shard to a random hue. Gather one before it fires for a **bonus move**. |
 
+## Shapes — the payoff for weaving, not just matching
+
+Diagonals make *shape* possible, so the thread's geometry is read when you
+release and rewarded on top of the normal gather. They stack: a knotted
+diamond built from facets pays all three.
+
+| Shape | How you make it | Payoff |
+|---|---|---|
+| **Facet** | 3+ shards in a straight diagonal run | A shockwave down the diagonal — the shards flanking either side of the run are gathered too |
+| **Diamond** | Close a loop as a 4-shard rhombus (a diagonal square around a centre shard) | Collapses whatever it encircles: the enclosed shard goes too, **whatever hue it is** |
+| **Weave** | Cross your own thread — two diagonal segments through the same cell square | A genuine knot. Gives a **move back** |
+
+A 2×2 orthogonal square is a loop but deliberately *not* a diamond: its centre
+falls between cells rather than on one, so square and diamond stay distinct
+shapes with distinct rewards.
+
 ## Why it doesn't look like a match-3
 
 The skeleton of Two Dots and Bejeweled is nearly identical; presentation is

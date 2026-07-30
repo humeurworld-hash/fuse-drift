@@ -215,6 +215,49 @@ func _ready() -> void:
 	game.dragging = false
 	game.path.clear()
 
+	# ── Shape detection ──────────────────────────────────────────────────────
+	# Straight diagonal run.
+	game.path = _p([[0,0],[1,1],[2,2]])
+	game.loop_closed = false
+	var sh = game._analyse_shape()
+	_check(sh.facet == 3, "3-shard diagonal is a facet (%d)" % sh.facet)
+	game.path = _p([[0,0],[1,1],[2,2],[3,3],[4,4]])
+	sh = game._analyse_shape()
+	_check(sh.facet == 5, "5-shard diagonal run measured (%d)" % sh.facet)
+	# A bend breaks the run.
+	game.path = _p([[0,0],[1,1],[2,1],[3,2]])
+	sh = game._analyse_shape()
+	_check(sh.facet == 2, "a bend breaks the diagonal run (%d)" % sh.facet)
+	# Orthogonal lines are not facets.
+	game.path = _p([[0,0],[1,0],[2,0],[3,0]])
+	sh = game._analyse_shape()
+	_check(sh.facet == 0, "a straight orthogonal line is not a facet (%d)" % sh.facet)
+
+	# Diamond: 4 shards around a centre cell.
+	game.path = _p([[1,0],[2,1],[1,2],[0,1],[1,0]])
+	game.loop_closed = true
+	sh = game._analyse_shape()
+	_check(sh.diamond, "rhombus loop is a diamond")
+	_check(sh.centre == Vector2i(1, 1), "diamond centre found (%s)" % str(sh.centre))
+	# A 2x2 square is a loop but NOT a diamond — its centre falls between cells.
+	game.path = _p([[0,0],[1,0],[1,1],[0,1],[0,0]])
+	sh = game._analyse_shape()
+	_check(not sh.diamond, "a 2x2 square is not a diamond")
+
+	# Knot: two diagonal segments crossing the same cell square.
+	game.path = _p([[0,0],[1,1],[1,0],[0,1]])
+	game.loop_closed = false
+	sh = game._analyse_shape()
+	_check(sh.knot, "crossing diagonals make a knot")
+	game.path = _p([[0,0],[1,1],[2,2]])
+	sh = game._analyse_shape()
+	_check(not sh.knot, "a straight diagonal is not a knot")
+	game.path = _p([[0,0],[1,0],[2,0],[2,1]])
+	sh = game._analyse_shape()
+	_check(not sh.knot, "an orthogonal path is not a knot")
+	game.path.clear()
+	game.loop_closed = false
+
 	# Win/lose paths build their panels without erroring.
 	game.game_over = false
 	game._finish(false)
@@ -248,6 +291,13 @@ func _check(cond: bool, what: String) -> void:
 	else:
 		fails += 1
 		printerr("  FAIL: " + what)
+
+
+func _p(coords: Array) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for c in coords:
+		out.append(Vector2i(c[0], c[1]))
+	return out
 
 
 func _weave(g, cells: Array, start := true) -> void:
