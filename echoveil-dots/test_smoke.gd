@@ -126,12 +126,15 @@ func _ready() -> void:
 	var pair3 := _find_pair(game)
 	_check(not pair3.is_empty(), "found a pair for exposure test")
 	var veiled_before := _count_veiled(game)
-	var lifted := 0
+	# Distinct veils only: with 8-way neighbours the woven cells share
+	# neighbours, and the board unveils each shard exactly once.
+	var lifted_cells := {}
 	for cell in pair3:
 		for n in game._neighbours(cell):
 			var nd = game._dot_at(n)
 			if nd != null and nd.veiled:
-				lifted += 1
+				lifted_cells[n] = true
+	var lifted: int = lifted_cells.size()
 	await game._resolve(pair3, game._dot_at(pair3[0]).color_idx)
 	_check(game.exposure == 0, "canvas scan fired and reset exposure")
 	var expect: int = veiled_before - lifted + game.SCAN_VEILS
@@ -177,7 +180,64 @@ func _ready() -> void:
 		await get_tree().process_frame
 	_check(game.moves_left <= moves_before3 - 1 + 1, "resonant weave resolved")
 
+	# Diagonal adjacency + the minimum-loop guard.
+	_check(game._adjacent(Vector2i(2, 2), Vector2i(3, 3)), "diagonal cells are adjacent")
+	_check(game._adjacent(Vector2i(2, 2), Vector2i(3, 2)), "orthogonal cells are adjacent")
+	_check(not game._adjacent(Vector2i(2, 2), Vector2i(4, 4)), "distant cells are not adjacent")
+	_check(not game._adjacent(Vector2i(2, 2), Vector2i(2, 2)), "a cell is not adjacent to itself")
+	_check(game._neighbours(Vector2i(2, 2)).size() == 8, "a cell has 8 neighbours")
+
+	# Force a uniform patch, then verify a 3-shard diagonal L cannot close a
+	# loop but a 4-shard square can.
+	for c in 4:
+		for r in 4:
+			var dd = game.grid[c][r]
+			dd.veiled = false
+			dd.resonant = false
+			dd.echo_timer = 0
+			dd.color_idx = 0
+			dd.queue_redraw()
+	game.busy = false
+	game.game_over = false
+	_weave(game, [Vector2i(0, 0), Vector2i(1, 0), Vector2i(1, 1), Vector2i(0, 0)])
+	_check(not game.loop_closed, "3-shard diagonal L cannot close a loop")
+	_check(game.path.size() == 3, "rejected close left the path intact (%d)" % game.path.size())
+	game.dragging = false
+	game.path.clear()
+	game.loop_closed = false
+
+	_weave(game, [Vector2i(0, 0), Vector2i(1, 0), Vector2i(1, 1), Vector2i(0, 1), Vector2i(0, 0)])
+	_check(game.loop_closed, "4-shard square closes a loop")
+	game.dragging = false
+	game.path.clear()
+	game.loop_closed = false
+
+	# Colour switching through a resonant shard (the Grindstone move).
+	game.grid[0][0].color_idx = 0
+	game.grid[1][0].resonant = true
+	game.grid[1][0].queue_redraw()
+	game.grid[2][0].color_idx = 2
+	game.grid[2][0].queue_redraw()
+	_weave(game, [Vector2i(0, 0), Vector2i(1, 0)])
+	_check(game.switch_armed, "resonant shard arms a hue switch")
+	_weave(game, [Vector2i(2, 0)], false)
+	_check(game.path.size() == 3, "thread continues into a new hue (%d)" % game.path.size())
+	_check(game.thread_color == 2, "thread hue switched to the new shard (%d)" % game.thread_color)
+	_check(not game.switch_armed, "switch is spent after use")
+	# ...and a second mismatched hue in a row is refused.
+	game.grid[3][0].color_idx = 3
+	game.grid[3][0].resonant = false
+	game.grid[3][0].queue_redraw()
+	_weave(game, [Vector2i(3, 0)], false)
+	_check(game.path.size() == 3, "a second hue change without a resonance is refused")
+	# Backtracking restores the pre-switch hue.
+	_weave(game, [Vector2i(1, 0)], false)
+	_check(game.switch_armed, "backtracking onto the resonance re-arms the switch")
+	game.dragging = false
+	game.path.clear()
+
 	# Win/lose paths build their panels without erroring.
+	game.game_over = false
 	game._finish(false)
 	await get_tree().process_frame
 	game.queue_free()
@@ -209,6 +269,17 @@ func _check(cond: bool, what: String) -> void:
 	else:
 		fails += 1
 		printerr("  FAIL: " + what)
+
+
+func _weave(g, cells: Array, start := true) -> void:
+	# Drive the board's drag handlers directly with board coordinates.
+	var i := 0
+	for cell in cells:
+		if start and i == 0:
+			g._start_drag(g._cell_pos(cell))
+		else:
+			g._update_drag(g._cell_pos(cell))
+		i += 1
 
 
 func _find_pair(g) -> Array:

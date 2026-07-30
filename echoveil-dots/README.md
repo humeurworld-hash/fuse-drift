@@ -7,10 +7,12 @@ project.
 
 ## How to play
 
-- **Weave a thread**: drag through orthogonally adjacent shards of the same hue.
+- **Weave a thread**: drag between neighbouring shards of the same hue —
+  **in any of the 8 directions**, diagonals included.
 - **Release** with 2+ shards woven to gather them (costs one move).
 - **Close a loop** (weave back onto a shard already in your thread) and release
-  to gather **every** shard of that hue on the board.
+  to gather **every** shard of that hue on the board. A loop needs at least 4
+  distinct shards, so a diagonal triangle won't do it.
 - Meet every hue goal (and lift every veil) before your moves run out.
 
 ## Mechanics, thread by thread
@@ -22,7 +24,7 @@ with a one-line note, then stays.
 |---|---|---|
 | 1 | **Weaving & loops** | The base game. |
 | 2 | **Exposure** | Every shard gathered draws Canvas attention; closing a loop spikes it hard. Fill the meter and the Canvas sweeps the board, shrouding 3 shards. Loops are powerful *and* loud — that tension is the core of the game. |
-| 4 | **Resonant shards** | Prismatic crystals ringed in every hue. They join a thread of **any** colour, so they bridge two runs that could never connect. Fuse's resonance, on the board. |
+| 4 | **Resonant shards** | Prismatic crystals ringed in every hue. Weave *through* one and your thread may **change hue and keep going** — the move that turns "find the biggest blob" into route-planning. The thread is drawn per-segment, so you watch the colour change at the resonance. Chain 8+ shards and a new resonance condenses on the board. |
 | 5 | **Veils** | Grey, drained shards that can't be woven. Gather beside one to lift its veil. |
 | 7 | **Echo shards** | Carry a countdown badge. Each move ticks it down; at zero the Loops rewind every neighbouring shard to a random hue. Gather one before it fires for a **bonus move**. |
 
