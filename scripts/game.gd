@@ -11,9 +11,7 @@ extends Node2D
 #  · Meet every goal before your moves run out.
 #
 # Mechanics introduced gradually across the threads (see G.LEVELS):
-#  · EXPOSURE — gathering draws Canvas attention; loops draw much more. At
-#    capacity the Canvas sweeps the board and shrouds shards.
-#  · RESONANT shards join a thread of any hue.
+#  · RESONANT shards let a thread change hue and keep going.
 #  · ECHO shards count down each move; at zero the Loops rewind their
 #    neighbours' hues. Gather one in time for a bonus move.
 
@@ -27,13 +25,6 @@ var color_count := 3
 var moves_left := 0
 var goals := {}          # color index -> remaining motes to gather
 var veils_left := 0
-
-# Canvas attention: gathering raises Exposure; at capacity the Canvas scans
-# the board and veils shards. 0 capacity = mechanic off for this thread.
-var exposure := 0
-var exposure_max := 0
-const SCAN_VEILS := 3
-const LOOP_EXPOSURE := 6
 
 var res_chance := 0.0    # chance a spawned shard is resonant
 var echo_count := 0      # echo shards maintained on the board
@@ -58,7 +49,6 @@ var game_over := false
 var hud: CanvasLayer
 var moves_label: Label
 var goal_chips := {}     # key (color idx or "veils") -> GoalChip
-var exposure_bar: ExposureBar
 var active_banner: Label
 
 
@@ -70,14 +60,13 @@ func _ready() -> void:
 	for k in level_def.goals:
 		goals[k] = level_def.goals[k]
 	veils_left = level_def.veils
-	exposure_max = level_def.get("exposure", 0)
 	res_chance = level_def.get("resonance", 0.0)
 	echo_count = level_def.get("echo", 0)
 
 	var vp := get_viewport_rect().size
 	board_origin = Vector2(
 		(vp.x - (COLS - 1) * CELL) * 0.5,
-		vp.y * 0.36
+		vp.y * 0.33
 	)
 
 	_build_backdrop()
@@ -323,10 +312,6 @@ func _resolve(cells: Array, color: int, was_loop := false) -> void:
 		tw.tween_property(d, "modulate", Color(1, 1, 1, 0), 0.16)
 		tw.chain().tween_callback(d.queue_free)
 
-	# The Canvas notices. Loops are loud.
-	if exposure_max > 0:
-		exposure += cells.size() + (LOOP_EXPOSURE if was_loop else 0)
-
 	_refresh_hud()
 	await get_tree().create_timer(0.18).timeout
 	await _collapse_and_refill()
@@ -336,9 +321,6 @@ func _resolve(cells: Array, color: int, was_loop := false) -> void:
 	# A long enough chain condenses a new resonance out of the gathered Mourk.
 	if res_chance > 0.0 and cells.size() >= CHAIN_RESONANT:
 		_form_resonant()
-
-	if exposure_max > 0 and exposure >= exposure_max:
-		await _canvas_scan()
 
 	if _goals_met():
 		_finish(true)
@@ -384,35 +366,6 @@ func _tick_echoes() -> void:
 						nd.bump()
 				d.echo_timer = MourkDot.ECHO_START
 			d.queue_redraw()
-
-
-func _canvas_scan() -> void:
-	# A Canvas sweep rakes the board and veils shards. Exposure resets.
-	exposure = 0
-	_show_banner("CANVAS SCAN", 1.4, Color(1.0, 0.42, 0.38), 44,
-		board_origin.y + (ROWS - 1) * CELL * 0.5 - 30.0)
-
-	var sweep := ScanSweep.new()
-	sweep.width = get_viewport_rect().size.x
-	sweep.position = Vector2(0, board_origin.y - CELL)
-	add_child(sweep)
-	var tw := create_tween()
-	tw.tween_property(sweep, "position:y", board_origin.y + ROWS * CELL, 0.55) \
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_callback(sweep.queue_free)
-	await get_tree().create_timer(0.6).timeout
-
-	var candidates: Array = []
-	for c in COLS:
-		for r in ROWS:
-			var d: MourkDot = grid[c][r]
-			if d != null and not d.veiled and d.echo_timer <= 0:
-				candidates.append(d)
-	candidates.shuffle()
-	for i in mini(SCAN_VEILS, candidates.size()):
-		candidates[i].shroud()
-	_refresh_hud()
-	await get_tree().create_timer(0.25).timeout
 
 
 func _collapse_and_refill() -> void:
@@ -523,13 +476,6 @@ func _build_hud(vp: Vector2) -> void:
 		chips.add_child(vchip)
 		goal_chips["veils"] = vchip
 
-	if exposure_max > 0:
-		exposure_bar = ExposureBar.new(self)
-		exposure_bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
-		exposure_bar.position.y = 306
-		exposure_bar.custom_minimum_size = Vector2(0, 46)
-		hud.add_child(exposure_bar)
-
 	var hint := UIH.make_label("Weave any direction. Close a loop to gather a whole hue.", 20, Color(0.42, 0.46, 0.58))
 	hint.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	hint.position.y = -70
@@ -574,8 +520,6 @@ func _refresh_hud() -> void:
 			goal_chips[k].set_remaining(maxi(veils_left, 0))
 		else:
 			goal_chips[k].set_remaining(goals[k])
-	if exposure_bar != null:
-		exposure_bar.queue_redraw()
 
 
 # ── End of level ──────────────────────────────────────────────────────────────
@@ -782,44 +726,6 @@ class LineLayer extends Node2D:
 			draw_string(ThemeDB.fallback_font, head + Vector2(20, -18), label,
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(1, 1, 1, 0.92))
 
-
-class ScanSweep extends Node2D:
-	# The Canvas raking the board: a red scanning beam.
-	var width := 720.0
-
-	func _draw() -> void:
-		draw_rect(Rect2(0, -14, width, 28), Color(1.0, 0.30, 0.25, 0.10))
-		draw_rect(Rect2(0, -3, width, 6), Color(1.0, 0.42, 0.35, 0.75))
-
-
-class ExposureBar extends Control:
-	# Canvas attention meter: fills gold -> red; full = scan.
-	var game
-
-	func _init(p_game) -> void:
-		game = p_game
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	func _draw() -> void:
-		var bar_w := 320.0
-		var bar_h := 14.0
-		var x := (size.x - bar_w) * 0.5
-		var y := 24.0
-		var pct: float = clampf(float(game.exposure) / float(game.exposure_max), 0.0, 1.0)
-		var f := ThemeDB.fallback_font
-		draw_string(f, Vector2(0, 16), "EXPOSURE", HORIZONTAL_ALIGNMENT_CENTER,
-			size.x, 16, Color(0.55, 0.58, 0.70))
-		# Slot
-		draw_rect(Rect2(x, y, bar_w, bar_h), Color(0.07, 0.10, 0.17))
-		draw_rect(Rect2(x, y, bar_w, bar_h), Color(0.30, 0.34, 0.46, 0.6), false, 1.5)
-		# Fill
-		if pct > 0.0:
-			var fill := G.GOLD.lerp(Color(1.0, 0.35, 0.28), pct)
-			draw_rect(Rect2(x + 2, y + 2, (bar_w - 4) * pct, bar_h - 4), fill)
-		# The eye of the Canvas, brightening as it takes interest.
-		var eye := Color(0.35, 0.38, 0.50).lerp(Color(1.0, 0.42, 0.35), pct)
-		draw_circle(Vector2(x + bar_w + 22, y + bar_h * 0.5), 7.0, eye)
-		draw_arc(Vector2(x + bar_w + 22, y + bar_h * 0.5), 11.0, 0.0, TAU, 24, eye, 1.5)
 
 
 class GoalChip extends Control:

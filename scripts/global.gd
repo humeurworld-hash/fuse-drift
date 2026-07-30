@@ -34,36 +34,34 @@ const BG_COLOR := Color(0.03, 0.05, 0.09)
 # goals: { color index -> motes to gather }.  veils: veiled motes on the board;
 # every veil must be lifted to clear the level (when veils > 0).
 # Mechanics arrive gradually as the threads progress:
-#   exposure  — Canvas attention meter capacity (0 = the Canvas isn't watching)
 #   resonance — chance a spawned shard is resonant (joins any thread)
 #   echo      — echo shards kept on the board (countdown; rewind neighbours)
 #   note      — one-line banner shown at level start when something is new
 const LEVELS := [
 	{ "moves": 25, "colors": 3, "goals": { 0: 15, 1: 15 },                       "veils": 0,
-		"exposure": 0,  "resonance": 0.0,  "echo": 0,
+		"resonance": 0.0,  "echo": 0,
 		"note": "Drag between neighbouring shards of one hue — diagonals count." },
 	{ "moves": 24, "colors": 3, "goals": { 0: 14, 1: 14, 2: 14 },                "veils": 0,
-		"exposure": 30, "resonance": 0.0,  "echo": 0,
-		"note": "The Canvas is watching. Gathering raises Exposure — loops spike it." },
+		"resonance": 0.0,  "echo": 0 },
 	{ "moves": 24, "colors": 4, "goals": { 0: 20, 3: 20 },                       "veils": 0,
-		"exposure": 30, "resonance": 0.0,  "echo": 0 },
+		"resonance": 0.0,  "echo": 0 },
 	{ "moves": 22, "colors": 4, "goals": { 0: 13, 1: 13, 2: 13, 3: 13 },         "veils": 0,
-		"exposure": 28, "resonance": 0.06, "echo": 0,
+		"resonance": 0.06, "echo": 0,
 		"note": "A resonance. Weave through one and your thread can change hue and keep going." },
 	{ "moves": 22, "colors": 4, "goals": { 1: 20 },                              "veils": 4,
-		"exposure": 28, "resonance": 0.06, "echo": 0,
+		"resonance": 0.06, "echo": 0,
 		"note": "Veiled shards can't be woven. Gather beside them to lift the veil." },
 	{ "moves": 22, "colors": 4, "goals": { 0: 16, 2: 16 },                       "veils": 6,
-		"exposure": 26, "resonance": 0.06, "echo": 0 },
+		"resonance": 0.06, "echo": 0 },
 	{ "moves": 25, "colors": 5, "goals": { 0: 15, 1: 15, 4: 15 },                "veils": 0,
-		"exposure": 26, "resonance": 0.06, "echo": 1,
+		"resonance": 0.06, "echo": 1,
 		"note": "The Loops. Echo shards rewind their neighbours — gather them in time." },
 	{ "moves": 23, "colors": 5, "goals": { 3: 18, 4: 18 },                       "veils": 6,
-		"exposure": 24, "resonance": 0.08, "echo": 1 },
+		"resonance": 0.08, "echo": 1 },
 	{ "moves": 21, "colors": 5, "goals": { 0: 11, 1: 11, 2: 11, 3: 11, 4: 11 },  "veils": 0,
-		"exposure": 24, "resonance": 0.08, "echo": 2 },
+		"resonance": 0.08, "echo": 2 },
 	{ "moves": 24, "colors": 5, "goals": { 4: 22, 0: 18 },                       "veils": 8,
-		"exposure": 22, "resonance": 0.08, "echo": 2 },
+		"resonance": 0.08, "echo": 2 },
 ]
 
 var current_level := 0
