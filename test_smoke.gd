@@ -73,6 +73,47 @@ func _ready() -> void:
 				count += 1
 	_check(count == 36, "board refilled after loop clear (%d)" % count)
 
+	# Input-driven weave: push real touch events through the viewport and
+	# verify they reach the board (guards against GUI eating touches).
+	var pair2 := []
+	for c in 6:
+		for r in 6:
+			var d = game.grid[c][r]
+			if d == null or d.veiled:
+				continue
+			var n = game._dot_at(Vector2i(c + 1, r))
+			if n != null and not n.veiled and n.color_idx == d.color_idx:
+				pair2 = [Vector2i(c, r), Vector2i(c + 1, r)]
+				break
+		if not pair2.is_empty():
+			break
+	_check(not pair2.is_empty(), "found a pair for touch test")
+	var moves_before2: int = game.moves_left
+	var press := InputEventScreenTouch.new()
+	press.index = 0
+	press.pressed = true
+	press.position = game._cell_pos(pair2[0])
+	game.get_viewport().push_input(press, true)
+	await get_tree().process_frame
+	_check(game.dragging, "touch press starts a drag")
+	var drag := InputEventScreenDrag.new()
+	drag.index = 0
+	drag.position = game._cell_pos(pair2[1])
+	game.get_viewport().push_input(drag, true)
+	await get_tree().process_frame
+	_check(game.path.size() == 2, "touch drag weaves second shard (%d)" % game.path.size())
+	var release := InputEventScreenTouch.new()
+	release.index = 0
+	release.pressed = false
+	release.position = game._cell_pos(pair2[1])
+	game.get_viewport().push_input(release, true)
+	await get_tree().process_frame
+	for i in 60:
+		if not game.busy:
+			break
+		await get_tree().process_frame
+	_check(game.moves_left == moves_before2 - 1, "touch release resolves the weave")
+
 	# Win/lose paths build their panels without erroring.
 	game._finish(false)
 	await get_tree().process_frame

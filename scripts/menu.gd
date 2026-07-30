@@ -7,6 +7,7 @@ func _ready() -> void:
 	var bg := ColorRect.new()
 	bg.color = G.BG_COLOR
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
 
 	add_child(VeilMotes.new())
@@ -28,7 +29,24 @@ func _ready() -> void:
 	var tagline := UIH.make_label("Emotion is not invisible.\nWeave it. Gather it. Lift the veil.", 24, Color(0.55, 0.58, 0.70))
 	vbox.add_child(tagline)
 
-	vbox.add_child(_spacer(70))
+	vbox.add_child(_spacer(40))
+
+	# A row of the five Mourk shards.
+	var shard_row := HBoxContainer.new()
+	shard_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	shard_row.add_theme_constant_override("separation", 14)
+	shard_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for tex in G.SHARD_TEXTURES:
+		var tr := TextureRect.new()
+		tr.texture = tex
+		tr.custom_minimum_size = Vector2(96, 96)
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		shard_row.add_child(tr)
+	vbox.add_child(shard_row)
+
+	vbox.add_child(_spacer(50))
 
 	var play := UIH.make_button("WEAVE", 40)
 	play.size_flags_horizontal = Control.SIZE_SHRINK_CENTER

@@ -50,7 +50,7 @@ func _ready() -> void:
 	var vp := get_viewport_rect().size
 	board_origin = Vector2(
 		(vp.x - (COLS - 1) * CELL) * 0.5,
-		vp.y * 0.34
+		vp.y * 0.36
 	)
 
 	_build_backdrop()
@@ -72,6 +72,9 @@ func _build_backdrop() -> void:
 	var bg := ColorRect.new()
 	bg.color = G.BG_COLOR
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Critical: without this the full-screen rect consumes every touch
+	# before it can reach the board's _unhandled_input.
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	back.add_child(bg)
 	var motes := VeilMotes.new()
 	motes.modulate = Color(1, 1, 1, 0.5)
@@ -114,6 +117,8 @@ func _spawn_dot(cell: Vector2i, pos: Vector2) -> MourkDot:
 func _unhandled_input(event: InputEvent) -> void:
 	if busy or game_over:
 		return
+	# Handle both touch and mouse: real devices send touch, desktop sends
+	# mouse; both may arrive when emulation is on, so handlers are idempotent.
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			_start_drag(event.position)
@@ -121,9 +126,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			_end_drag()
 	elif event is InputEventScreenDrag:
 		_update_drag(event.position)
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_start_drag(event.position)
+		else:
+			_end_drag()
+	elif event is InputEventMouseMotion:
+		_update_drag(event.position)
 
 
 func _start_drag(pos: Vector2) -> void:
+	if dragging:
+		return
 	var cell := _cell_at(pos)
 	if cell.x < 0:
 		return
@@ -326,11 +340,11 @@ func _build_hud(vp: Vector2) -> void:
 	hud.add_child(chips)
 
 	for k in goals:
-		var chip := GoalChip.new(G.DOT_COLORS[k], false)
+		var chip := GoalChip.new(k, false)
 		chips.add_child(chip)
 		goal_chips[k] = chip
 	if level_def.veils > 0:
-		var vchip := GoalChip.new(G.VEIL_COLOR, true)
+		var vchip := GoalChip.new(0, true)
 		chips.add_child(vchip)
 		goal_chips["veils"] = vchip
 
@@ -482,44 +496,52 @@ class LineLayer extends Node2D:
 			return
 		var col: Color = G.DOT_COLORS[first.color_idx]
 		col = col.lightened(0.2)
-		col.a = 0.9 if game.loop_closed else 0.7
 		var pts := PackedVector2Array()
 		for cell in game.path:
 			pts.append(game._cell_pos(cell))
 		if game.dragging:
 			pts.append(game.drag_pos)
 		if pts.size() >= 2:
-			draw_polyline(pts, col, 10.0, true)
+			# Woven thread: wide soft aura + bright core.
+			var aura := col
+			aura.a = 0.35 if game.loop_closed else 0.22
+			draw_polyline(pts, aura, 26.0, true)
+			col.a = 0.95 if game.loop_closed else 0.8
+			draw_polyline(pts, col, 8.0, true)
 		for p in pts:
 			draw_circle(p, 6.0, col)
 
 
 class GoalChip extends Control:
-	var chip_color: Color
+	var color_idx := 0
 	var is_veil := false
 	var remaining := 0
 
-	func _init(p_color: Color, p_veil: bool) -> void:
-		chip_color = p_color
+	func _init(p_color_idx: int, p_veil: bool) -> void:
+		color_idx = p_color_idx
 		is_veil = p_veil
-		custom_minimum_size = Vector2(76, 92)
+		custom_minimum_size = Vector2(76, 96)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	func set_remaining(n: int) -> void:
 		remaining = n
 		queue_redraw()
 
 	func _draw() -> void:
-		var center := Vector2(size.x * 0.5, 30.0)
+		var center := Vector2(size.x * 0.5, 32.0)
+		var art := 58.0
+		var rect := Rect2(center.x - art * 0.5, center.y - art * 0.5, art, art)
 		if is_veil:
-			draw_circle(center, 22.0, Color(0.14, 0.16, 0.22))
-			draw_arc(center, 22.0, 0.0, TAU, 32, chip_color, 3.0)
+			var tex: Texture2D = G.SHARD_TEXTURES[color_idx]
+			draw_texture_rect(tex, rect, false, Color(0.40, 0.42, 0.52, 0.85))
+			draw_arc(center, 26.0, 0.0, TAU, 32, G.VEIL_COLOR, 3.0)
 		else:
-			var glow := chip_color
-			glow.a = 0.2
+			var glow: Color = G.DOT_COLORS[color_idx]
+			glow.a = 0.18
 			draw_circle(center, 30.0, glow)
-			draw_circle(center, 22.0, chip_color)
+			draw_texture_rect(G.SHARD_TEXTURES[color_idx], rect, false)
 		var done := remaining <= 0
 		var txt := "OK" if done else str(remaining)
 		var txt_col := Color(0.36, 0.92, 0.48) if done else Color(0.92, 0.93, 0.97)
-		draw_string(ThemeDB.fallback_font, Vector2(0, 84), txt,
+		draw_string(ThemeDB.fallback_font, Vector2(0, 88), txt,
 			HORIZONTAL_ALIGNMENT_CENTER, size.x, 26, txt_col)

@@ -1,10 +1,12 @@
 extends Node2D
 class_name MourkDot
 
-# One mote of Mourk on the board. Drawn procedurally: soft glow + core.
-# Veiled motes are shrouded grey and cannot be woven until the veil is lifted.
+# One shard of Mourk on the board — drawn with the crystal art from
+# Fuse: Mourk Run, over a soft hue glow. Veiled shards are shrouded grey
+# and cannot be woven until the veil is lifted.
 
-const RADIUS := 30.0
+const RADIUS := 30.0    # logical pick radius (input feel)
+const ART := 96.0       # on-screen size of the crystal art
 
 var color_idx := 0
 var veiled := false
@@ -33,19 +35,17 @@ func bump() -> void:
 
 
 func _draw() -> void:
+	var tex: Texture2D = G.SHARD_TEXTURES[color_idx]
+	var rect := Rect2(-ART * 0.5, -ART * 0.5, ART, ART)
 	if veiled:
-		var shroud := Color(0.14, 0.16, 0.22)
-		draw_circle(Vector2.ZERO, RADIUS * 1.08, shroud)
-		draw_arc(Vector2.ZERO, RADIUS * 1.08, 0.0, TAU, 40, G.VEIL_COLOR, 3.0)
-		var hint: Color = G.DOT_COLORS[color_idx]
-		hint.a = 0.18
-		draw_circle(Vector2.ZERO, RADIUS * 0.42, hint)
+		# Grey shroud: the crystal is visible but drained of feeling.
+		var shadow := Color(0, 0, 0, 0.35)
+		draw_circle(Vector2.ZERO, RADIUS * 1.15, shadow)
+		draw_texture_rect(tex, rect, false, Color(0.40, 0.42, 0.52, 0.85))
+		draw_arc(Vector2.ZERO, RADIUS * 1.25, 0.0, TAU, 40, G.VEIL_COLOR, 3.0)
 		return
-	var col: Color = G.DOT_COLORS[color_idx]
-	var glow := col
-	glow.a = 0.08
-	draw_circle(Vector2.ZERO, RADIUS * 1.85, glow)
-	glow.a = 0.16
-	draw_circle(Vector2.ZERO, RADIUS * 1.35, glow)
-	draw_circle(Vector2.ZERO, RADIUS, col)
-	draw_circle(Vector2(-RADIUS * 0.3, -RADIUS * 0.3), RADIUS * 0.26, Color(1, 1, 1, 0.35))
+	# Faint hue halo — just enough to lift the crystal off the dark veil.
+	var glow: Color = G.DOT_COLORS[color_idx]
+	glow.a = 0.07
+	draw_circle(Vector2.ZERO, RADIUS * 1.6, glow)
+	draw_texture_rect(tex, rect, false)

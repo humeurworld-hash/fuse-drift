@@ -10,13 +10,22 @@ const SAVE_PATH := "user://mourk_weave.cfg"
 
 # Emotion palette — Mourk hues.
 const DOT_COLORS := [
-	Color(1.00, 0.62, 0.18),   # Ember    — anger
+	Color(1.00, 0.30, 0.45),   # Ember    — anger
 	Color(0.30, 0.62, 1.00),   # Sorrow   — sadness
 	Color(0.36, 0.92, 0.48),   # Verdant  — calm
 	Color(0.98, 0.86, 0.35),   # Radiance — joy
 	Color(0.72, 0.42, 1.00),   # Umbral   — fear
 ]
 const DOT_NAMES := ["Ember", "Sorrow", "Verdant", "Radiance", "Umbral"]
+
+# Mourk shard art — the same crystals that appear in Fuse: Mourk Run.
+const SHARD_TEXTURES := [
+	preload("res://assets/shards/ember.png"),
+	preload("res://assets/shards/sorrow.png"),
+	preload("res://assets/shards/verdant.png"),
+	preload("res://assets/shards/radiance.png"),
+	preload("res://assets/shards/umbral.png"),
+]
 
 const VEIL_COLOR := Color(0.42, 0.46, 0.58)
 const GOLD := Color(0.90, 0.82, 0.40)
