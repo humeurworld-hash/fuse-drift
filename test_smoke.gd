@@ -31,10 +31,10 @@ func _ready() -> void:
 	for c in 6:
 		for r in 6:
 			var d = game.grid[c][r]
-			if d == null or d.veiled:
+			if d == null or d.veiled or d.warden:
 				continue
 			var n = game._dot_at(Vector2i(c + 1, r))
-			if n != null and not n.veiled and n.color_idx == d.color_idx:
+			if n != null and not n.veiled and not n.warden and n.color_idx == d.color_idx:
 				pair = [Vector2i(c, r), Vector2i(c + 1, r)]
 				break
 		if not pair.is_empty():
@@ -64,7 +64,7 @@ func _ready() -> void:
 	for c in 6:
 		for r in 6:
 			var d = game.grid[c][r]
-			if d != null and not d.veiled and d.color_idx == loop_color:
+			if d != null and not d.veiled and not d.warden and d.color_idx == loop_color:
 				cells.append(Vector2i(c, r))
 	await game._resolve(cells, loop_color)
 	count = 0
@@ -80,10 +80,10 @@ func _ready() -> void:
 	for c in 6:
 		for r in 6:
 			var d = game.grid[c][r]
-			if d == null or d.veiled:
+			if d == null or d.veiled or d.warden:
 				continue
 			var n = game._dot_at(Vector2i(c + 1, r))
-			if n != null and not n.veiled and n.color_idx == d.color_idx:
+			if n != null and not n.veiled and not n.warden and n.color_idx == d.color_idx:
 				pair2 = [Vector2i(c, r), Vector2i(c + 1, r)]
 				break
 		if not pair2.is_empty():
@@ -127,10 +127,11 @@ func _ready() -> void:
 	for c in 6:
 		for r in 6:
 			var d = game.grid[c][r]
-			if d == null or d.veiled or d.echo_timer > 0:
+			if d == null or d.veiled or d.warden or d.echo_timer > 0:
 				continue
 			var n = game._dot_at(Vector2i(c + 1, r))
-			if n != null and not n.veiled and n.echo_timer <= 0 and n.color_idx != d.color_idx:
+			if n != null and not n.veiled and not n.warden and n.echo_timer <= 0 \
+				and n.color_idx != d.color_idx:
 				res_pair = [Vector2i(c, r), Vector2i(c + 1, r)]
 				break
 		if not res_pair.is_empty():
@@ -388,10 +389,10 @@ func _find_pair(g) -> Array:
 	for c in 6:
 		for r in 6:
 			var d = g.grid[c][r]
-			if d == null or d.veiled:
+			if d == null or d.veiled or d.warden:
 				continue
 			var n = g._dot_at(Vector2i(c + 1, r))
-			if n != null and not n.veiled and n.color_idx == d.color_idx \
+			if n != null and not n.veiled and not n.warden and n.color_idx == d.color_idx \
 				and not d.resonant and not n.resonant:
 				return [Vector2i(c, r), Vector2i(c + 1, r)]
 	return []
