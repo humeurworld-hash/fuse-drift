@@ -36,32 +36,38 @@ const BG_COLOR := Color(0.03, 0.05, 0.09)
 # Mechanics arrive gradually as the threads progress:
 #   resonance — chance a spawned shard is resonant (joins any thread)
 #   echo      — echo shards kept on the board (countdown; rewind neighbours)
+#   wardens   — Canvas drones; strike each one to clear the thread
 #   note      — one-line banner shown at level start when something is new
+#
+# Goals are large on purpose. One well-routed thread with a facet shockwave
+# gathers 15-30 shards, so the old targets were cleared with ~80% of the move
+# budget untouched. These are set against measured play, not guesswork.
 const LEVELS := [
-	{ "moves": 25, "colors": 3, "goals": { 0: 15, 1: 15 },                       "veils": 0,
-		"resonance": 0.0,  "echo": 0,
+	{ "moves":  9, "colors": 3, "goals": { 0: 26, 1: 26 },                       "veils": 0,
+		"resonance": 0.0,  "echo": 0, "wardens": 0,
 		"note": "Drag between neighbouring shards of one hue — diagonals count." },
-	{ "moves": 24, "colors": 3, "goals": { 0: 14, 1: 14, 2: 14 },                "veils": 0,
-		"resonance": 0.0,  "echo": 0 },
-	{ "moves": 24, "colors": 4, "goals": { 0: 20, 3: 20 },                       "veils": 0,
-		"resonance": 0.0,  "echo": 0 },
-	{ "moves": 22, "colors": 4, "goals": { 0: 13, 1: 13, 2: 13, 3: 13 },         "veils": 0,
-		"resonance": 0.06, "echo": 0,
+	{ "moves":  8, "colors": 3, "goals": { 0: 24, 1: 24, 2: 24 },                "veils": 0,
+		"resonance": 0.0,  "echo": 0, "wardens": 0 },
+	{ "moves": 13, "colors": 4, "goals": { 0: 26, 3: 26 },                       "veils": 0,
+		"resonance": 0.0,  "echo": 0, "wardens": 1,
+		"note": "A Canvas warden. End a thread on it to strike it — every drone must fall." },
+	{ "moves": 10, "colors": 4, "goals": { 0: 22, 1: 22, 2: 22, 3: 22 },         "veils": 0,
+		"resonance": 0.06, "echo": 0, "wardens": 1,
 		"note": "A resonance. Weave through one and your thread can change hue and keep going." },
-	{ "moves": 22, "colors": 4, "goals": { 1: 20 },                              "veils": 4,
-		"resonance": 0.06, "echo": 0,
+	{ "moves": 11, "colors": 4, "goals": { 1: 34 },                              "veils": 5,
+		"resonance": 0.06, "echo": 0, "wardens": 2,
 		"note": "Veiled shards can't be woven. Gather beside them to lift the veil." },
-	{ "moves": 22, "colors": 4, "goals": { 0: 16, 2: 16 },                       "veils": 6,
-		"resonance": 0.06, "echo": 0 },
-	{ "moves": 25, "colors": 5, "goals": { 0: 15, 1: 15, 4: 15 },                "veils": 0,
-		"resonance": 0.06, "echo": 1,
+	{ "moves": 11, "colors": 4, "goals": { 0: 28, 2: 28 },                       "veils": 7,
+		"resonance": 0.06, "echo": 0, "wardens": 2 },
+	{ "moves": 11, "colors": 5, "goals": { 0: 26, 1: 26, 4: 26 },                "veils": 0,
+		"resonance": 0.06, "echo": 1, "wardens": 2,
 		"note": "The Loops. Echo shards rewind their neighbours — gather them in time." },
-	{ "moves": 23, "colors": 5, "goals": { 3: 18, 4: 18 },                       "veils": 6,
-		"resonance": 0.08, "echo": 1 },
-	{ "moves": 21, "colors": 5, "goals": { 0: 11, 1: 11, 2: 11, 3: 11, 4: 11 },  "veils": 0,
-		"resonance": 0.08, "echo": 2 },
-	{ "moves": 24, "colors": 5, "goals": { 4: 22, 0: 18 },                       "veils": 8,
-		"resonance": 0.08, "echo": 2 },
+	{ "moves": 12, "colors": 5, "goals": { 3: 32, 4: 32 },                       "veils": 7,
+		"resonance": 0.08, "echo": 1, "wardens": 3 },
+	{ "moves":  7, "colors": 5, "goals": { 0: 22, 1: 22, 2: 22, 3: 22, 4: 22 },  "veils": 0,
+		"resonance": 0.08, "echo": 2, "wardens": 3 },
+	{ "moves": 11, "colors": 5, "goals": { 4: 36, 0: 32 },                       "veils": 9,
+		"resonance": 0.08, "echo": 2, "wardens": 4 },
 ]
 
 var current_level := 0

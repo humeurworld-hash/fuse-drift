@@ -27,6 +27,22 @@ with a one-line note, then stays.
 | 5 | **Veils** | Grey, drained shards that can't be woven. Gather beside one to lift its veil. |
 | 7 | **Echo shards** | Carry a countdown badge. Each move ticks it down; at zero the Loops rewind every neighbouring shard to a random hue. Gather one before it fires for a **bonus move**. |
 
+### Canvas Wardens (from thread 3)
+
+The Canvas finally hunts you back. A warden is a machined hexagon sitting in a
+cell with a **fuse count** on it. Every move burns one; at zero it scans and
+shrouds up to three shards around it, then re-arms.
+
+You cannot gather a warden and you cannot start a thread on one. You **strike**
+it — by ending a thread on it, with at least two shards of real Mourk already
+woven. It then terminates that thread; nothing follows it. Facet shockwaves and
+diamond collapses also destroy them, so shapes double as weapons, but a loop
+deliberately does *not* sweep them up.
+
+**Every warden must fall to clear the thread**, alongside the hue goals. That's
+the decision the game was missing: take the fat chain, or spend this move
+putting down the drone that fires next turn.
+
 ## Shapes — the payoff for weaving, not just matching
 
 Diagonals make *shape* possible, so the thread's geometry is read when you
@@ -42,6 +58,20 @@ diamond built from facets pays all three.
 A 2×2 orthogonal square is a loop but deliberately *not* a diamond: its centre
 falls between cells rather than on one, so square and diamond stay distinct
 shapes with distinct rewards.
+
+## Difficulty is tuned against measured play
+
+The threads aren't hand-guessed. A solver plays every level repeatedly and
+reports how much of the move budget it leaves unused. The first pass exposed
+that levels were being cleared with **80% of the moves untouched and zero
+losses in 30 runs** — every mechanic added had multiplied the player's power
+while the targets underneath stayed put.
+
+That pass also caught a real bug: the facet shockwave was flanking *every*
+diagonal step in a path rather than the single longest straight run, so one
+long zigzag could clear almost all 36 cells. Now the budgets sit around a
+third unused with the solver losing a few runs outright — and the solver
+plays far better than a person, so a human should feel it.
 
 ## Why it doesn't look like a match-3
 
