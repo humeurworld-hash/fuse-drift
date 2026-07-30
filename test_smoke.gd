@@ -114,8 +114,86 @@ func _ready() -> void:
 		await get_tree().process_frame
 	_check(game.moves_left == moves_before2 - 1, "touch release resolves the weave")
 
+	# Exposure: on a fresh board, push the meter to the brink and resolve;
+	# the Canvas should scan, reset the meter, and shroud exactly SCAN_VEILS.
+	game.queue_free()
+	await get_tree().process_frame
+	game = load("res://scenes/Game.tscn").instantiate()
+	get_tree().root.add_child(game)
+	await get_tree().process_frame
+	_check(game.exposure_max > 0, "level 5 has the exposure mechanic")
+	game.exposure = game.exposure_max - 1
+	var pair3 := _find_pair(game)
+	_check(not pair3.is_empty(), "found a pair for exposure test")
+	var veiled_before := _count_veiled(game)
+	var lifted := 0
+	for cell in pair3:
+		for n in game._neighbours(cell):
+			var nd = game._dot_at(n)
+			if nd != null and nd.veiled:
+				lifted += 1
+	await game._resolve(pair3, game._dot_at(pair3[0]).color_idx)
+	_check(game.exposure == 0, "canvas scan fired and reset exposure")
+	var expect: int = veiled_before - lifted + game.SCAN_VEILS
+	_check(_count_veiled(game) == expect,
+		"scan shrouded exactly %d shards (%d before, %d lifted, expected %d, got %d)" \
+		% [game.SCAN_VEILS, veiled_before, lifted, expect, _count_veiled(game)])
+
+	# Resonance: a resonant shard joins a thread of any hue.
+	var res_pair := []
+	for c in 6:
+		for r in 6:
+			var d = game.grid[c][r]
+			if d == null or d.veiled or d.echo_timer > 0:
+				continue
+			var n = game._dot_at(Vector2i(c + 1, r))
+			if n != null and not n.veiled and n.echo_timer <= 0 and n.color_idx != d.color_idx:
+				res_pair = [Vector2i(c, r), Vector2i(c + 1, r)]
+				break
+		if not res_pair.is_empty():
+			break
+	_check(not res_pair.is_empty(), "found a mismatched pair for resonance test")
+	var rd = game._dot_at(res_pair[0])
+	rd.resonant = true
+	var moves_before3: int = game.moves_left
+	var p2 := InputEventScreenTouch.new()
+	p2.pressed = true
+	p2.position = game._cell_pos(res_pair[0])
+	game.get_viewport().push_input(p2, true)
+	await get_tree().process_frame
+	var d2 := InputEventScreenDrag.new()
+	d2.position = game._cell_pos(res_pair[1])
+	game.get_viewport().push_input(d2, true)
+	await get_tree().process_frame
+	_check(game.path.size() == 2, "resonant shard weaves into a mismatched hue (%d)" % game.path.size())
+	var r2 := InputEventScreenTouch.new()
+	r2.pressed = false
+	r2.position = game._cell_pos(res_pair[1])
+	game.get_viewport().push_input(r2, true)
+	await get_tree().process_frame
+	for i in 90:
+		if not game.busy:
+			break
+		await get_tree().process_frame
+	_check(game.moves_left <= moves_before3 - 1 + 1, "resonant weave resolved")
+
 	# Win/lose paths build their panels without erroring.
 	game._finish(false)
+	await get_tree().process_frame
+	game.queue_free()
+	await get_tree().process_frame
+
+	# Echo shards: level 7 keeps one ticking on the board.
+	G.current_level = 6
+	var game2 = load("res://scenes/Game.tscn").instantiate()
+	get_tree().root.add_child(game2)
+	await get_tree().process_frame
+	_check(_count_echo(game2) == 1, "level 7 starts with 1 echo shard (%d)" % _count_echo(game2))
+	var pair4 := _find_pair(game2)
+	_check(not pair4.is_empty(), "found a pair on echo board")
+	await game2._resolve(pair4, game2._dot_at(pair4[0]).color_idx)
+	_check(_count_echo(game2) == 1, "echo quota maintained after a move (%d)" % _count_echo(game2))
+	game2.queue_free()
 	await get_tree().process_frame
 
 	if fails == 0:
@@ -131,3 +209,34 @@ func _check(cond: bool, what: String) -> void:
 	else:
 		fails += 1
 		printerr("  FAIL: " + what)
+
+
+func _find_pair(g) -> Array:
+	for c in 6:
+		for r in 6:
+			var d = g.grid[c][r]
+			if d == null or d.veiled:
+				continue
+			var n = g._dot_at(Vector2i(c + 1, r))
+			if n != null and not n.veiled and n.color_idx == d.color_idx \
+				and not d.resonant and not n.resonant:
+				return [Vector2i(c, r), Vector2i(c + 1, r)]
+	return []
+
+
+func _count_veiled(g) -> int:
+	var n := 0
+	for c in 6:
+		for r in 6:
+			if g.grid[c][r] != null and g.grid[c][r].veiled:
+				n += 1
+	return n
+
+
+func _count_echo(g) -> int:
+	var n := 0
+	for c in 6:
+		for r in 6:
+			if g.grid[c][r] != null and g.grid[c][r].echo_timer > 0:
+				n += 1
+	return n

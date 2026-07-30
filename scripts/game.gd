@@ -3,12 +3,19 @@ extends Node2D
 # ── EchoVeil: Mourk Weave — board & gameplay ──────────────────────────────────
 #
 # Two Dots-style rules, EchoVeil flavour:
-#  · Drag through orthogonally adjacent motes of the same hue to weave a thread.
-#  · Release with 2+ motes woven to gather them (costs one move).
-#  · Weave back onto a mote already in the thread to close a LOOP — releasing
-#    gathers every unveiled mote of that hue on the board.
-#  · Veiled motes can't be woven; gathering a mote next to a veil lifts it.
+#  · Drag through orthogonally adjacent shards of the same hue to weave a thread.
+#  · Release with 2+ shards woven to gather them (costs one move).
+#  · Weave back onto a shard already in the thread to close a LOOP — releasing
+#    gathers every unveiled shard of that hue on the board.
+#  · Veiled shards can't be woven; gathering beside a veil lifts it.
 #  · Meet every goal before your moves run out.
+#
+# Mechanics introduced gradually across the threads (see G.LEVELS):
+#  · EXPOSURE — gathering draws Canvas attention; loops draw much more. At
+#    capacity the Canvas sweeps the board and shrouds shards.
+#  · RESONANT shards join a thread of any hue.
+#  · ECHO shards count down each move; at zero the Loops rewind their
+#    neighbours' hues. Gather one in time for a bonus move.
 
 const COLS := 6
 const ROWS := 6
@@ -20,6 +27,17 @@ var color_count := 3
 var moves_left := 0
 var goals := {}          # color index -> remaining motes to gather
 var veils_left := 0
+
+# Canvas attention: gathering raises Exposure; at capacity the Canvas scans
+# the board and veils shards. 0 capacity = mechanic off for this thread.
+var exposure := 0
+var exposure_max := 0
+const SCAN_VEILS := 3
+const LOOP_EXPOSURE := 6
+
+var res_chance := 0.0    # chance a spawned shard is resonant
+var echo_count := 0      # echo shards maintained on the board
+var thread_color := -1   # hue of the current thread (-1 = only resonants so far)
 
 var board_origin := Vector2.ZERO   # centre of the top-left cell
 var grid: Array = []               # grid[col][row] -> MourkDot or null (row 0 = top)
@@ -36,6 +54,8 @@ var game_over := false
 var hud: CanvasLayer
 var moves_label: Label
 var goal_chips := {}     # key (color idx or "veils") -> GoalChip
+var exposure_bar: ExposureBar
+var active_banner: Label
 
 
 func _ready() -> void:
@@ -46,6 +66,9 @@ func _ready() -> void:
 	for k in level_def.goals:
 		goals[k] = level_def.goals[k]
 	veils_left = level_def.veils
+	exposure_max = level_def.get("exposure", 0)
+	res_chance = level_def.get("resonance", 0.0)
+	echo_count = level_def.get("echo", 0)
 
 	var vp := get_viewport_rect().size
 	board_origin = Vector2(
@@ -61,6 +84,18 @@ func _ready() -> void:
 	_build_hud(vp)
 	_fill_board()
 	_refresh_hud()
+	queue_redraw()   # cell sockets
+	if level_def.has("note"):
+		_show_banner(level_def.note, 4.5)
+
+
+func _draw() -> void:
+	# Etched sockets beneath the shards — the veil's loom.
+	for c in COLS:
+		for r in ROWS:
+			var p := _cell_pos(Vector2i(c, r))
+			draw_arc(p, CELL * 0.44, 0.0, TAU, 40, Color(0.30, 0.34, 0.46, 0.16), 2.0)
+			draw_circle(p, 2.0, Color(0.30, 0.34, 0.46, 0.22))
 
 
 # ── Setup ─────────────────────────────────────────────────────────────────────
@@ -90,26 +125,54 @@ func _fill_board() -> void:
 	for c in COLS:
 		for r in ROWS:
 			_spawn_dot(Vector2i(c, r), _cell_pos(Vector2i(c, r)))
-	# Shroud some motes behind veils.
+	# Shroud some motes behind veils (never a resonant shard).
 	var cells: Array[Vector2i] = []
 	for c in COLS:
 		for r in ROWS:
-			cells.append(Vector2i(c, r))
+			if not _dot_at(Vector2i(c, r)).resonant:
+				cells.append(Vector2i(c, r))
 	cells.shuffle()
 	for i in mini(level_def.veils, cells.size()):
 		var d: MourkDot = _dot_at(cells[i])
 		d.veiled = true
 		d.queue_redraw()
+	_maintain_echoes()
 	_ensure_move_exists()
 
 
 func _spawn_dot(cell: Vector2i, pos: Vector2) -> MourkDot:
 	var d := MourkDot.new()
 	d.setup(randi() % color_count, cell)
+	if randf() < res_chance:
+		d.resonant = true
+		d.queue_redraw()
 	d.position = pos
 	dots_root.add_child(d)
 	grid[cell.x][cell.y] = d
 	return d
+
+
+func _maintain_echoes() -> void:
+	# Keep the thread's quota of echo shards ticking on the board.
+	if echo_count <= 0:
+		return
+	var active := 0
+	var candidates: Array = []
+	for c in COLS:
+		for r in ROWS:
+			var d: MourkDot = grid[c][r]
+			if d == null:
+				continue
+			if d.echo_timer > 0:
+				active += 1
+			elif not d.veiled and not d.resonant:
+				candidates.append(d)
+	candidates.shuffle()
+	while active < echo_count and not candidates.is_empty():
+		var d: MourkDot = candidates.pop_back()
+		d.echo_timer = MourkDot.ECHO_START
+		d.queue_redraw()
+		active += 1
 
 
 # ── Input ─────────────────────────────────────────────────────────────────────
@@ -147,6 +210,7 @@ func _start_drag(pos: Vector2) -> void:
 	dragging = true
 	loop_closed = false
 	path = [cell]
+	thread_color = -1 if d.resonant else d.color_idx
 	drag_pos = pos
 	d.bump()
 	line_layer.queue_redraw()
@@ -166,14 +230,16 @@ func _update_drag(pos: Vector2) -> void:
 				loop_closed = _path_has_repeat()
 			elif not loop_closed and _adjacent(cell, last):
 				var d: MourkDot = _dot_at(cell)
-				var first: MourkDot = _dot_at(path[0])
-				if d != null and not d.veiled and first != null and d.color_idx == first.color_idx:
+				if d != null and not d.veiled \
+					and (d.resonant or thread_color < 0 or d.color_idx == thread_color):
+					if not d.resonant and thread_color < 0:
+						thread_color = d.color_idx
 					var closes := path.has(cell)
 					path.append(cell)
 					d.bump()
 					if closes:
 						loop_closed = true
-						_pulse_hue(d.color_idx)
+						_pulse_hue(thread_color)
 	line_layer.queue_redraw()
 
 
@@ -185,26 +251,28 @@ func _end_drag() -> void:
 		path.clear()
 		line_layer.queue_redraw()
 		return
-	var color: int = _dot_at(path[0]).color_idx
+	var color := thread_color
+	var was_loop := loop_closed
 	var cells := {}
-	if loop_closed:
+	if was_loop and color >= 0:
+		# Loop: every unveiled, non-resonant shard of the thread's hue...
 		for c in COLS:
 			for r in ROWS:
 				var d: MourkDot = grid[c][r]
-				if d != null and not d.veiled and d.color_idx == color:
+				if d != null and not d.veiled and not d.resonant and d.color_idx == color:
 					cells[Vector2i(c, r)] = true
-	else:
-		for cell in path:
-			cells[cell] = true
+	# ...plus everything actually woven (covers resonants in the path).
+	for cell in path:
+		cells[cell] = true
 	path.clear()
 	loop_closed = false
 	line_layer.queue_redraw()
-	_resolve(cells.keys(), color)
+	_resolve(cells.keys(), color, was_loop)
 
 
 # ── Resolution ────────────────────────────────────────────────────────────────
 
-func _resolve(cells: Array, color: int) -> void:
+func _resolve(cells: Array, color: int, was_loop := false) -> void:
 	busy = true
 	moves_left -= 1
 
@@ -216,11 +284,14 @@ func _resolve(cells: Array, color: int) -> void:
 				nd.unveil()
 				veils_left -= 1
 
-	# Count toward the hue goal and clear the motes.
+	# Count toward the hue goal and clear the motes. Gathering an echo shard
+	# before its countdown ends grants a bonus move.
 	if goals.has(color):
 		goals[color] = maxi(0, goals[color] - cells.size())
 	for cell in cells:
 		var d: MourkDot = _dot_at(cell)
+		if d.echo_timer > 0:
+			moves_left += 1
 		grid[cell.x][cell.y] = null
 		var tw := create_tween()
 		tw.set_parallel(true)
@@ -228,9 +299,18 @@ func _resolve(cells: Array, color: int) -> void:
 		tw.tween_property(d, "modulate", Color(1, 1, 1, 0), 0.16)
 		tw.chain().tween_callback(d.queue_free)
 
+	# The Canvas notices. Loops are loud.
+	if exposure_max > 0:
+		exposure += cells.size() + (LOOP_EXPOSURE if was_loop else 0)
+
 	_refresh_hud()
 	await get_tree().create_timer(0.18).timeout
 	await _collapse_and_refill()
+	_tick_echoes()
+	_maintain_echoes()
+
+	if exposure_max > 0 and exposure >= exposure_max:
+		await _canvas_scan()
 
 	if _goals_met():
 		_finish(true)
@@ -239,6 +319,55 @@ func _resolve(cells: Array, color: int) -> void:
 	else:
 		_ensure_move_exists()
 		busy = false
+
+
+func _tick_echoes() -> void:
+	# Echo shards count down each move; at zero the Loop rewinds their
+	# neighbours' hues, then the countdown starts again.
+	for c in COLS:
+		for r in ROWS:
+			var d: MourkDot = grid[c][r]
+			if d == null or d.echo_timer <= 0 or d.veiled:
+				continue
+			d.echo_timer -= 1
+			if d.echo_timer <= 0:
+				for n in _neighbours(Vector2i(c, r)):
+					var nd: MourkDot = _dot_at(n)
+					if nd != null and not nd.veiled and not nd.resonant:
+						nd.color_idx = randi() % color_count
+						nd.queue_redraw()
+						nd.bump()
+				d.echo_timer = MourkDot.ECHO_START
+			d.queue_redraw()
+
+
+func _canvas_scan() -> void:
+	# A Canvas sweep rakes the board and veils shards. Exposure resets.
+	exposure = 0
+	_show_banner("CANVAS SCAN", 1.4, Color(1.0, 0.42, 0.38), 44,
+		board_origin.y + (ROWS - 1) * CELL * 0.5 - 30.0)
+
+	var sweep := ScanSweep.new()
+	sweep.width = get_viewport_rect().size.x
+	sweep.position = Vector2(0, board_origin.y - CELL)
+	add_child(sweep)
+	var tw := create_tween()
+	tw.tween_property(sweep, "position:y", board_origin.y + ROWS * CELL, 0.55) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_callback(sweep.queue_free)
+	await get_tree().create_timer(0.6).timeout
+
+	var candidates: Array = []
+	for c in COLS:
+		for r in ROWS:
+			var d: MourkDot = grid[c][r]
+			if d != null and not d.veiled and d.echo_timer <= 0:
+				candidates.append(d)
+	candidates.shuffle()
+	for i in mini(SCAN_VEILS, candidates.size()):
+		candidates[i].shroud()
+	_refresh_hud()
+	await get_tree().create_timer(0.25).timeout
 
 
 func _collapse_and_refill() -> void:
@@ -293,7 +422,8 @@ func _has_move() -> bool:
 				continue
 			for n in [Vector2i(c + 1, r), Vector2i(c, r + 1)]:
 				var nd: MourkDot = _dot_at(n)
-				if nd != null and not nd.veiled and nd.color_idx == d.color_idx:
+				if nd != null and not nd.veiled \
+					and (nd.resonant or d.resonant or nd.color_idx == d.color_idx):
 					return true
 	return false
 
@@ -348,10 +478,48 @@ func _build_hud(vp: Vector2) -> void:
 		chips.add_child(vchip)
 		goal_chips["veils"] = vchip
 
-	var hint := UIH.make_label("Close a loop to gather every mote of its hue.", 20, Color(0.42, 0.46, 0.58))
+	if exposure_max > 0:
+		exposure_bar = ExposureBar.new(self)
+		exposure_bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		exposure_bar.position.y = 306
+		exposure_bar.custom_minimum_size = Vector2(0, 46)
+		hud.add_child(exposure_bar)
+
+	var hint := UIH.make_label("Close a loop to gather every shard of its hue.", 20, Color(0.42, 0.46, 0.58))
 	hint.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	hint.position.y = -70
 	hud.add_child(hint)
+
+
+func _show_banner(text: String, dur: float, color := G.GOLD, font_size := 24,
+		y := -1.0) -> void:
+	# Notes sit in the clear space below the board; alerts are passed a y
+	# over the board itself. Never covers the shards either way.
+	# Only ever one banner on screen, so an alert can't stack on a note.
+	if is_instance_valid(active_banner):
+		active_banner.queue_free()
+	var top: float = y if y >= 0.0 else board_origin.y + (ROWS - 1) * CELL + 78.0
+	var banner := UIH.make_label(text, font_size, color)
+	active_banner = banner
+	banner.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Offsets only — assigning `position` would preserve width and undo the
+	# side margins, leaving the text unwrapped and running off-screen.
+	banner.anchor_left = 0.0
+	banner.anchor_right = 1.0
+	banner.anchor_top = 0.0
+	banner.anchor_bottom = 0.0
+	banner.offset_left = 44.0
+	banner.offset_right = -44.0
+	banner.offset_top = top
+	banner.offset_bottom = top + font_size * 3.2
+	hud.add_child(banner)
+	banner.modulate = Color(1, 1, 1, 0)
+	var tw := create_tween()
+	tw.tween_property(banner, "modulate", Color(1, 1, 1, 1), 0.3)
+	tw.tween_interval(dur)
+	tw.tween_property(banner, "modulate", Color(1, 1, 1, 0), 0.5)
+	tw.tween_callback(banner.queue_free)
 
 
 func _refresh_hud() -> void:
@@ -361,6 +529,8 @@ func _refresh_hud() -> void:
 			goal_chips[k].set_remaining(maxi(veils_left, 0))
 		else:
 			goal_chips[k].set_remaining(goals[k])
+	if exposure_bar != null:
+		exposure_bar.queue_redraw()
 
 
 # ── End of level ──────────────────────────────────────────────────────────────
@@ -473,10 +643,12 @@ func _path_has_repeat() -> bool:
 
 
 func _pulse_hue(color: int) -> void:
+	if color < 0:
+		return
 	for c in COLS:
 		for r in ROWS:
 			var d: MourkDot = grid[c][r]
-			if d != null and not d.veiled and d.color_idx == color:
+			if d != null and not d.veiled and not d.resonant and d.color_idx == color:
 				d.bump()
 
 
@@ -491,11 +663,12 @@ class LineLayer extends Node2D:
 	func _draw() -> void:
 		if game.path.is_empty():
 			return
-		var first = game._dot_at(game.path[0])
-		if first == null:
-			return
-		var col: Color = G.DOT_COLORS[first.color_idx]
-		col = col.lightened(0.2)
+		var col: Color
+		if game.thread_color >= 0:
+			col = G.DOT_COLORS[game.thread_color].lightened(0.2)
+		else:
+			col = Color(0.92, 0.94, 1.0)   # all-resonant thread
+
 		var pts := PackedVector2Array()
 		for cell in game.path:
 			pts.append(game._cell_pos(cell))
@@ -510,6 +683,45 @@ class LineLayer extends Node2D:
 			draw_polyline(pts, col, 8.0, true)
 		for p in pts:
 			draw_circle(p, 6.0, col)
+
+
+class ScanSweep extends Node2D:
+	# The Canvas raking the board: a red scanning beam.
+	var width := 720.0
+
+	func _draw() -> void:
+		draw_rect(Rect2(0, -14, width, 28), Color(1.0, 0.30, 0.25, 0.10))
+		draw_rect(Rect2(0, -3, width, 6), Color(1.0, 0.42, 0.35, 0.75))
+
+
+class ExposureBar extends Control:
+	# Canvas attention meter: fills gold -> red; full = scan.
+	var game
+
+	func _init(p_game) -> void:
+		game = p_game
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		var bar_w := 320.0
+		var bar_h := 14.0
+		var x := (size.x - bar_w) * 0.5
+		var y := 24.0
+		var pct: float = clampf(float(game.exposure) / float(game.exposure_max), 0.0, 1.0)
+		var f := ThemeDB.fallback_font
+		draw_string(f, Vector2(0, 16), "EXPOSURE", HORIZONTAL_ALIGNMENT_CENTER,
+			size.x, 16, Color(0.55, 0.58, 0.70))
+		# Slot
+		draw_rect(Rect2(x, y, bar_w, bar_h), Color(0.07, 0.10, 0.17))
+		draw_rect(Rect2(x, y, bar_w, bar_h), Color(0.30, 0.34, 0.46, 0.6), false, 1.5)
+		# Fill
+		if pct > 0.0:
+			var fill := G.GOLD.lerp(Color(1.0, 0.35, 0.28), pct)
+			draw_rect(Rect2(x + 2, y + 2, (bar_w - 4) * pct, bar_h - 4), fill)
+		# The eye of the Canvas, brightening as it takes interest.
+		var eye := Color(0.35, 0.38, 0.50).lerp(Color(1.0, 0.42, 0.35), pct)
+		draw_circle(Vector2(x + bar_w + 22, y + bar_h * 0.5), 7.0, eye)
+		draw_arc(Vector2(x + bar_w + 22, y + bar_h * 0.5), 11.0, 0.0, TAU, 24, eye, 1.5)
 
 
 class GoalChip extends Control:
