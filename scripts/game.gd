@@ -28,6 +28,7 @@ var veils_left := 0
 
 var res_chance := 0.0    # chance a spawned shard is resonant
 var echo_count := 0      # echo shards maintained on the board
+var wardens_left := 0    # Canvas drones still on the board
 var thread_color := -1   # hue of the current thread (-1 = only resonants so far)
 var switch_armed := false  # last woven shard was resonant: next may be any hue
 
@@ -63,6 +64,7 @@ func _ready() -> void:
 	veils_left = level_def.veils
 	res_chance = level_def.get("resonance", 0.0)
 	echo_count = level_def.get("echo", 0)
+	wardens_left = level_def.get("wardens", 0)
 
 	var vp := get_viewport_rect().size
 	board_origin = Vector2(
@@ -92,13 +94,18 @@ func _update_focus() -> void:
 			if d == null:
 				continue
 			var target := 1.0
+			var lock := false
 			if dragging:
 				if path.has(Vector2i(c, r)):
 					target = 1.0
 				elif not d.veiled and _may_weave(d):
 					target = 0.82
+					lock = d.warden      # strikeable right now
 				else:
 					target = 0.30
+			if d.targetable != lock:
+				d.targetable = lock
+				d.queue_redraw()
 			d.set_focus(target)
 
 
@@ -133,13 +140,15 @@ func _fill_board() -> void:
 	var cells: Array[Vector2i] = []
 	for c in COLS:
 		for r in ROWS:
-			if not _dot_at(Vector2i(c, r)).resonant:
+			var vd: MourkDot = _dot_at(Vector2i(c, r))
+			if not vd.resonant and not vd.warden:
 				cells.append(Vector2i(c, r))
 	cells.shuffle()
 	for i in mini(level_def.veils, cells.size()):
 		var d: MourkDot = _dot_at(cells[i])
 		d.veiled = true
 		d.queue_redraw()
+	_place_wardens()
 	_maintain_echoes()
 	_ensure_move_exists()
 
@@ -156,6 +165,54 @@ func _spawn_dot(cell: Vector2i, pos: Vector2) -> MourkDot:
 	return d
 
 
+func _place_wardens() -> void:
+	# Never on the outer edge: a cornered drone is far too easy to reach.
+	var spots: Array[Vector2i] = []
+	for c in range(1, COLS - 1):
+		for r in range(1, ROWS - 1):
+			var d: MourkDot = _dot_at(Vector2i(c, r))
+			if d != null and not d.veiled and not d.resonant:
+				spots.append(Vector2i(c, r))
+	spots.shuffle()
+	for i in mini(wardens_left, spots.size()):
+		var d: MourkDot = _dot_at(spots[i])
+		d.warden = true
+		d.veiled = false
+		d.resonant = false
+		d.echo_timer = 0
+		d.warden_timer = MourkDot.WARDEN_FUSE + i   # stagger their fuses
+		d.queue_redraw()
+
+
+func _tick_wardens() -> void:
+	# Each move burns a fuse. At zero the drone scans: it veils what is
+	# around it, then starts over.
+	for c in COLS:
+		for r in ROWS:
+			var d: MourkDot = grid[c][r]
+			if d == null or not d.warden:
+				continue
+			d.warden_timer -= 1
+			if d.warden_timer <= 0:
+				_warden_fire(Vector2i(c, r))
+				d.warden_timer = MourkDot.WARDEN_FUSE
+			d.queue_redraw()
+
+
+func _warden_fire(at: Vector2i) -> void:
+	var hit := 0
+	var around := _neighbours(at)
+	around.shuffle()
+	for n in around:
+		if hit >= 3:
+			break
+		var nd: MourkDot = _dot_at(n)
+		if nd != null and not nd.veiled and not nd.warden and not nd.resonant:
+			nd.shroud()
+			hit += 1
+	_spawn_burst(_cell_pos(at), Color(1.0, 0.32, 0.26), 14, 120.0)
+
+
 func _maintain_echoes() -> void:
 	# Keep the thread's quota of echo shards ticking on the board.
 	if echo_count <= 0:
@@ -169,7 +226,7 @@ func _maintain_echoes() -> void:
 				continue
 			if d.echo_timer > 0:
 				active += 1
-			elif not d.veiled and not d.resonant:
+			elif not d.veiled and not d.resonant and not d.warden:
 				candidates.append(d)
 	candidates.shuffle()
 	while active < echo_count and not candidates.is_empty():
@@ -209,8 +266,8 @@ func _start_drag(pos: Vector2) -> void:
 	if cell.x < 0:
 		return
 	var d: MourkDot = _dot_at(cell)
-	if d == null or d.veiled:
-		return
+	if d == null or d.veiled or d.warden:
+		return          # a thread must start in Mourk, not on a drone
 	dragging = true
 	loop_closed = false
 	path = [cell]
@@ -229,6 +286,10 @@ func _update_drag(pos: Vector2) -> void:
 	if cell.x >= 0 and not path.is_empty():
 		var last: Vector2i = path[path.size() - 1]
 		if cell != last:
+			# Striking a warden ends the thread — only backtracking is left.
+			if _ends_on_warden() and not (path.size() >= 2 and cell == path[path.size() - 2]):
+				line_layer.queue_redraw()
+				return
 			if path.size() >= 2 and cell == path[path.size() - 2]:
 				# Backtrack: unweave the last shard.
 				path.pop_back()
@@ -274,7 +335,8 @@ func _end_drag() -> void:
 		for c in COLS:
 			for r in ROWS:
 				var d: MourkDot = grid[c][r]
-				if d != null and not d.veiled and not d.resonant and d.color_idx == color:
+				if d != null and not d.veiled and not d.resonant and not d.warden \
+					and d.color_idx == color:
 					cells[Vector2i(c, r)] = true
 	# ...plus everything actually woven (covers resonants in the path).
 	for cell in path:
@@ -283,7 +345,7 @@ func _end_drag() -> void:
 	# Shape bonuses. A facet sends a shockwave out along both flanks of the
 	# diagonal; a diamond collapses whatever it encircles, whatever hue it is.
 	if shape.facet >= FACET_MIN:
-		for c2 in _facet_flanks():
+		for c2 in _facet_flanks(shape.facet_at, shape.facet):
 			var fd: MourkDot = _dot_at(c2)
 			if fd != null and not fd.veiled:
 				cells[c2] = true
@@ -300,17 +362,21 @@ func _end_drag() -> void:
 	_resolve(cells.keys(), color, was_loop, shape, focus_pt)
 
 
-func _facet_flanks() -> Array[Vector2i]:
-	# Cells sitting either side of every straight diagonal step in the path.
+func _facet_flanks(start: int, run: int) -> Array[Vector2i]:
+	# Cells either side of the ONE longest straight diagonal run.
+	#
+	# This used to flank every diagonal step anywhere in the path, so a long
+	# zigzag threw off flanks across the whole board and a single move could
+	# clear almost all 36 cells. The shockwave belongs to the straight run
+	# only — that is what the shape actually is.
 	var out: Array[Vector2i] = []
-	for i in range(path.size() - 1):
-		var step: Vector2i = path[i + 1] - path[i]
-		if step.x == 0 or step.y == 0:
-			continue
-		var perp := Vector2i(step.x, -step.y)
-		for cell in [path[i], path[i + 1]]:
-			out.append(cell + perp)
-			out.append(cell - perp)
+	if start < 0 or run < 2:
+		return out
+	var step: Vector2i = path[start + 1] - path[start]
+	var perp := Vector2i(step.x, -step.y)
+	for k in range(start, mini(start + run, path.size())):
+		out.append(path[k] + perp)
+		out.append(path[k] - perp)
 	return out
 
 
@@ -333,7 +399,12 @@ func _resolve(cells: Array, color: int, was_loop := false, shape := {},
 	# thread never touched, so a bulk decrement against one hue would be wrong.
 	for cell in cells:
 		var d: MourkDot = _dot_at(cell)
-		if d != null and goals.has(d.color_idx):
+		if d == null:
+			continue
+		if d.warden:
+			wardens_left -= 1
+			_spawn_burst(_cell_pos(cell), Color(1.0, 0.42, 0.32), 18, 175.0)
+		elif goals.has(d.color_idx):
 			goals[d.color_idx] = maxi(0, goals[d.color_idx] - 1)
 
 	# Gathering an echo shard before its countdown ends grants a bonus move.
@@ -356,6 +427,7 @@ func _resolve(cells: Array, color: int, was_loop := false, shape := {},
 	await _collapse_and_refill()
 	_tick_echoes()
 	_maintain_echoes()
+	_tick_wardens()
 
 	# A long enough chain condenses a new resonance out of the gathered Mourk.
 	if res_chance > 0.0 and cells.size() >= CHAIN_RESONANT:
@@ -412,7 +484,8 @@ func _form_resonant() -> void:
 	for c in COLS:
 		for r in ROWS:
 			var d: MourkDot = grid[c][r]
-			if d != null and not d.veiled and not d.resonant and d.echo_timer <= 0:
+			if d != null and not d.veiled and not d.resonant and not d.warden \
+				and d.echo_timer <= 0:
 				candidates.append(d)
 	if candidates.is_empty():
 		return
@@ -483,7 +556,7 @@ func _ensure_move_exists() -> void:
 		for c in COLS:
 			for r in ROWS:
 				var d: MourkDot = grid[c][r]
-				if d != null and not d.veiled:
+				if d != null and not d.veiled and not d.warden:
 					d.color_idx = randi() % color_count
 					d.queue_redraw()
 
@@ -492,11 +565,11 @@ func _has_move() -> bool:
 	for c in COLS:
 		for r in ROWS:
 			var d: MourkDot = grid[c][r]
-			if d == null or d.veiled:
+			if d == null or d.veiled or d.warden:
 				continue
 			for n in _neighbours(Vector2i(c, r)):
 				var nd: MourkDot = _dot_at(n)
-				if nd != null and not nd.veiled \
+				if nd != null and not nd.veiled and not nd.warden \
 					and (nd.resonant or d.resonant or nd.color_idx == d.color_idx):
 					return true
 	return false
@@ -506,7 +579,7 @@ func _goals_met() -> bool:
 	for k in goals:
 		if goals[k] > 0:
 			return false
-	return veils_left <= 0
+	return veils_left <= 0 and wardens_left <= 0
 
 
 # ── HUD ───────────────────────────────────────────────────────────────────────
@@ -551,6 +624,10 @@ func _build_hud(vp: Vector2) -> void:
 		var vchip := GoalChip.new(0, true)
 		chips.add_child(vchip)
 		goal_chips["veils"] = vchip
+	if level_def.get("wardens", 0) > 0:
+		var wchip := GoalChip.new(0, false, true)
+		chips.add_child(wchip)
+		goal_chips["wardens"] = wchip
 
 	var hint := UIH.make_label("Weave any direction. Close a loop to gather a whole hue.", 20, Color(0.42, 0.46, 0.58))
 	hint.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
@@ -592,8 +669,13 @@ func _show_banner(text: String, dur: float, color := G.GOLD, font_size := 24,
 func _refresh_hud() -> void:
 	moves_label.text = str(maxi(moves_left, 0))
 	for k in goal_chips:
+		# Keys are either a hue index or a name; comparing an int against a
+		# String is a hard error in GDScript, so branch on the type first.
 		if k is String:
-			goal_chips[k].set_remaining(maxi(veils_left, 0))
+			if k == "veils":
+				goal_chips[k].set_remaining(maxi(veils_left, 0))
+			else:
+				goal_chips[k].set_remaining(maxi(wardens_left, 0))
 		else:
 			goal_chips[k].set_remaining(goals[k])
 
@@ -708,7 +790,8 @@ func _analyse_shape() -> Dictionary:
 	#   facet   — longest straight diagonal run, in shards
 	#   diamond — the closed loop is a 4-shard rhombus around a centre
 	#   knot    — two diagonal segments cross each other: a true weave
-	var out := { "facet": 0, "diamond": false, "knot": false, "centre": Vector2i.ZERO }
+	var out := { "facet": 0, "facet_at": -1, "diamond": false, "knot": false,
+		"centre": Vector2i.ZERO }
 	if path.size() < 2:
 		return out
 
@@ -725,7 +808,9 @@ func _analyse_shape() -> Dictionary:
 		while j < path.size() - 1 and (path[j + 1] - path[j]) == step:
 			run += 1
 			j += 1
-		best = maxi(best, run)
+		if run > best:
+			best = run
+			out.facet_at = i
 		i = j
 	out.facet = best
 
@@ -771,12 +856,21 @@ func _analyse_shape() -> Dictionary:
 
 
 func _may_weave(d: MourkDot) -> bool:
-	# Resonant shards always join. A normal shard joins if it matches the
-	# thread's hue, starts it, or follows a resonant — which lets the thread
-	# switch hue and keep going.
+	# A warden is not gathered, it is struck: only ever as the final shard of
+	# a thread that already has real Mourk in it. That is the whole decision —
+	# spend a thread putting a drone down, or take the fat chain elsewhere.
+	if d.warden:
+		return path.size() >= 2 and not _ends_on_warden()
 	if d.resonant:
 		return true
 	return thread_color < 0 or d.color_idx == thread_color or switch_armed
+
+
+func _ends_on_warden() -> bool:
+	if path.is_empty():
+		return false
+	var d: MourkDot = _dot_at(path[path.size() - 1])
+	return d != null and d.warden
 
 
 func _recompute_thread() -> void:
@@ -936,11 +1030,13 @@ class Burst extends Node2D:
 class GoalChip extends Control:
 	var color_idx := 0
 	var is_veil := false
+	var is_warden := false
 	var remaining := 0
 
-	func _init(p_color_idx: int, p_veil: bool) -> void:
+	func _init(p_color_idx: int, p_veil: bool, p_warden := false) -> void:
 		color_idx = p_color_idx
 		is_veil = p_veil
+		is_warden = p_warden
 		custom_minimum_size = Vector2(76, 96)
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
@@ -952,7 +1048,16 @@ class GoalChip extends Control:
 		var center := Vector2(size.x * 0.5, 32.0)
 		var art := 58.0
 		var rect := Rect2(center.x - art * 0.5, center.y - art * 0.5, art, art)
-		if is_veil:
+		if is_warden:
+			var plate := PackedVector2Array()
+			for i in 6:
+				var a := TAU * float(i) / 6.0
+				plate.append(center + Vector2(cos(a), sin(a)) * 24.0)
+			draw_colored_polygon(plate, Color(0.10, 0.11, 0.15))
+			draw_polyline(plate + PackedVector2Array([plate[0]]),
+				Color(1.0, 0.32, 0.26), 2.5, true)
+			draw_circle(center, 8.0, Color(1.0, 0.55, 0.45, 0.9))
+		elif is_veil:
 			var tex: Texture2D = G.SHARD_TEXTURES[color_idx]
 			draw_texture_rect(tex, rect, false, Color(0.40, 0.42, 0.52, 0.85))
 			draw_arc(center, 26.0, 0.0, TAU, 32, G.VEIL_COLOR, 3.0)

@@ -22,7 +22,8 @@ func _ready() -> void:
 				if game.grid[c][r].veiled:
 					veiled += 1
 	_check(count == 36, "board full at start (%d)" % count)
-	_check(veiled == 4, "level 5 has 4 veils (%d)" % veiled)
+	var want_veils: int = G.LEVELS[4].veils
+	_check(veiled == want_veils, "level 5 veils match its definition (%d)" % veiled)
 	_check(game._has_move(), "a move exists at start")
 
 	# Find an adjacent same-hue unveiled pair and resolve it.
@@ -173,6 +174,7 @@ func _ready() -> void:
 			var dd = game.grid[c][r]
 			dd.veiled = false
 			dd.resonant = false
+			dd.warden = false      # levels spawn drones; clear the test patch
 			dd.echo_timer = 0
 			dd.color_idx = 0
 			dd.queue_redraw()
@@ -257,6 +259,77 @@ func _ready() -> void:
 	_check(not sh.knot, "an orthogonal path is not a knot")
 	game.path.clear()
 	game.loop_closed = false
+
+	# ── Canvas wardens ───────────────────────────────────────────────────────
+	for c in 4:
+		for r in 4:
+			var dd = game.grid[c][r]
+			dd.veiled = false
+			dd.resonant = false
+			dd.warden = false
+			dd.echo_timer = 0
+			dd.color_idx = 0
+			dd.queue_redraw()
+	game.grid[2][0].warden = true
+	game.grid[2][0].warden_timer = 2
+	game.dragging = false
+	game.path.clear()
+	game.loop_closed = false
+
+	# A thread cannot begin on a drone.
+	game._start_drag(game._cell_pos(Vector2i(2, 0)))
+	_check(not game.dragging, "a thread cannot start on a warden")
+
+	# Nor can a drone be the second shard — a thread must carry Mourk first.
+	_weave(game, [Vector2i(0, 0), Vector2i(1, 0)])
+	_check(game.path.size() == 2, "thread of two shards woven (%d)" % game.path.size())
+	_weave(game, [Vector2i(2, 0)], false)
+	_check(game.path.size() == 3, "warden struck as the third shard (%d)" % game.path.size())
+	# Striking ends the thread: nothing may follow.
+	_weave(game, [Vector2i(3, 0)], false)
+	_check(game.path.size() == 3, "the thread ends on the warden it struck")
+	# But backing off it is allowed.
+	_weave(game, [Vector2i(1, 0)], false)
+	_check(game.path.size() == 2, "backtracking off a struck warden works (%d)" % game.path.size())
+
+	# Striking one clears it from the board and off the counter.
+	game.dragging = false
+	game.path.clear()
+	var wardens_before: int = game.wardens_left
+	game.busy = false
+	await game._resolve([Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0)], 0)
+	_check(game.wardens_left == wardens_before - 1,
+		"striking a warden takes it off the counter (%d -> %d)" % [wardens_before, game.wardens_left])
+
+	# A drone with wardens still standing blocks the win, goals or no goals.
+	game.wardens_left = 1
+	for k in game.goals:
+		game.goals[k] = 0
+	game.veils_left = 0
+	_check(not game._goals_met(), "a standing warden blocks the clear")
+	game.wardens_left = 0
+	_check(game._goals_met(), "clearing the last warden completes the thread")
+
+	# A fired drone shrouds what is around it.
+	var fresh = load("res://scenes/Game.tscn").instantiate()
+	get_tree().root.add_child(fresh)
+	await get_tree().process_frame
+	var wpos := Vector2i(-1, -1)
+	for c in 6:
+		for r in 6:
+			if fresh.grid[c][r] != null and fresh.grid[c][r].warden:
+				wpos = Vector2i(c, r)
+	if wpos.x >= 0:
+		for n in fresh._neighbours(wpos):
+			var nd = fresh._dot_at(n)
+			if nd != null:
+				nd.veiled = false
+		var before_v := _count_veiled(fresh)
+		fresh._warden_fire(wpos)
+		_check(_count_veiled(fresh) > before_v,
+			"a firing warden shrouds its neighbours (%d -> %d)" % [before_v, _count_veiled(fresh)])
+	fresh.queue_free()
+	await get_tree().process_frame
 
 	# Win/lose paths build their panels without erroring.
 	game.game_over = false
