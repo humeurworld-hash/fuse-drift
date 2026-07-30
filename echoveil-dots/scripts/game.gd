@@ -88,18 +88,28 @@ func _ready() -> void:
 	_build_hud(vp)
 	_fill_board()
 	_refresh_hud()
-	queue_redraw()   # cell sockets
+	# no sockets: shards hang in the veil, not in slots
 	if level_def.has("note"):
 		_show_banner(level_def.note, 4.5)
 
 
-func _draw() -> void:
-	# Etched sockets beneath the shards — the veil's loom.
+func _update_focus() -> void:
+	# The thread is the hero: while weaving, everything that can't join it
+	# falls back into the veil. Without this the board reads as a wall of gems.
 	for c in COLS:
 		for r in ROWS:
-			var p := _cell_pos(Vector2i(c, r))
-			draw_arc(p, CELL * 0.44, 0.0, TAU, 40, Color(0.30, 0.34, 0.46, 0.16), 2.0)
-			draw_circle(p, 2.0, Color(0.30, 0.34, 0.46, 0.22))
+			var d: MourkDot = grid[c][r]
+			if d == null:
+				continue
+			var target := 1.0
+			if dragging:
+				if path.has(Vector2i(c, r)):
+					target = 1.0
+				elif not d.veiled and _may_weave(d):
+					target = 0.82
+				else:
+					target = 0.30
+			d.set_focus(target)
 
 
 # ── Setup ─────────────────────────────────────────────────────────────────────
@@ -217,6 +227,7 @@ func _start_drag(pos: Vector2) -> void:
 	_recompute_thread()
 	drag_pos = pos
 	d.bump()
+	_update_focus()
 	line_layer.queue_redraw()
 
 
@@ -233,6 +244,7 @@ func _update_drag(pos: Vector2) -> void:
 				path.pop_back()
 				loop_closed = _path_has_repeat()
 				_recompute_thread()
+				_update_focus()
 			elif not loop_closed and _adjacent(cell, last):
 				var d: MourkDot = _dot_at(cell)
 				if d != null and not d.veiled and _may_weave(d):
@@ -250,6 +262,7 @@ func _update_drag(pos: Vector2) -> void:
 					if closes:
 						loop_closed = true
 						_pulse_hue(thread_color)
+					_update_focus()
 	line_layer.queue_redraw()
 
 
@@ -257,6 +270,7 @@ func _end_drag() -> void:
 	if not dragging:
 		return
 	dragging = false
+	_update_focus()
 	if path.size() < 2:
 		path.clear()
 		line_layer.queue_redraw()

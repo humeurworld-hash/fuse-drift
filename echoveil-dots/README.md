@@ -32,6 +32,22 @@ Note that shards the Canvas shrouds mid-level are obstacles, not goals — they
 don't raise the veil counter. Otherwise a heavy-scoring run could push the
 target out of reach faster than you could chase it.
 
+## Why it doesn't look like a match-3
+
+The skeleton of Two Dots and Bejeweled is nearly identical; presentation is
+what separates them. Deliberate choices here:
+
+- **No sockets.** Shards hang in the veil — they drift, sway, and breathe.
+  A circle behind each piece, even a faint one, reads instantly as a slot.
+  For the same reason the hue aura is stacked soft rings drawn *behind* the
+  crystal, never over it.
+- **Each hue has its own silhouette.** The art is one crystal cluster, so
+  every emotion gets a signature tilt, scale and handedness (`HUE_FORM`).
+  Five recolours of one shape is the jewel-game tell.
+- **The thread is the hero.** While weaving, shards that can't join fall back
+  into the veil, so the eye follows the line rather than scanning a wall of
+  gems — and the thread is drawn per-segment so a hue switch is visible.
+
 ## The five hues
 
 | Hue | Emotion | Colour |
