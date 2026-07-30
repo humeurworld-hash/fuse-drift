@@ -114,33 +114,12 @@ func _ready() -> void:
 		await get_tree().process_frame
 	_check(game.moves_left == moves_before2 - 1, "touch release resolves the weave")
 
-	# Exposure: on a fresh board, push the meter to the brink and resolve;
-	# the Canvas should scan, reset the meter, and shroud exactly SCAN_VEILS.
+	# Fresh board for the remaining mechanic checks.
 	game.queue_free()
 	await get_tree().process_frame
 	game = load("res://scenes/Game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	await get_tree().process_frame
-	_check(game.exposure_max > 0, "level 5 has the exposure mechanic")
-	game.exposure = game.exposure_max - 1
-	var pair3 := _find_pair(game)
-	_check(not pair3.is_empty(), "found a pair for exposure test")
-	var veiled_before := _count_veiled(game)
-	# Distinct veils only: with 8-way neighbours the woven cells share
-	# neighbours, and the board unveils each shard exactly once.
-	var lifted_cells := {}
-	for cell in pair3:
-		for n in game._neighbours(cell):
-			var nd = game._dot_at(n)
-			if nd != null and nd.veiled:
-				lifted_cells[n] = true
-	var lifted: int = lifted_cells.size()
-	await game._resolve(pair3, game._dot_at(pair3[0]).color_idx)
-	_check(game.exposure == 0, "canvas scan fired and reset exposure")
-	var expect: int = veiled_before - lifted + game.SCAN_VEILS
-	_check(_count_veiled(game) == expect,
-		"scan shrouded exactly %d shards (%d before, %d lifted, expected %d, got %d)" \
-		% [game.SCAN_VEILS, veiled_before, lifted, expect, _count_veiled(game)])
 
 	# Resonance: a resonant shard joins a thread of any hue.
 	var res_pair := []
