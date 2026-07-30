@@ -29,8 +29,8 @@ project.
 
 Open this folder (`echoveil-dots/`) as a project in Godot 4.6+ and press Play.
 Portrait 720×1280, mobile renderer (GL Compatibility) — same setup as the main
-project. All visuals are drawn procedurally in code; there are no image assets
-to import.
+project. The game pieces use the Mourk shard crystal art shared with
+*Fuse: Mourk Run* (`assets/shards/`); everything else is drawn in code.
 
 ## Structure
 
