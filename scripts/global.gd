@@ -68,6 +68,34 @@ const LEVELS := [
 		"resonance": 0.08, "echo": 2, "wardens": 3 },
 	{ "moves": 11, "colors": 5, "goals": { 4: 36, 0: 32 },                       "veils": 9,
 		"resonance": 0.08, "echo": 2, "wardens": 4 },
+
+	# ── The Deep Veil: threads 11-20 ─────────────────────────────────────────
+	# Past the first descent the Canvas stops merely watching. Drones arrive in
+	# numbers and their fuses shorten, so a thread's route has to pay for
+	# itself twice: gather Mourk and put a drone down on the same drag.
+	{ "moves": 13, "colors": 5, "goals": { 0: 30, 2: 30 },                       "veils": 6,
+		"resonance": 0.08, "echo": 1, "wardens": 3,
+		"note": "Deeper. The Canvas keeps more of itself down here." },
+	{ "moves": 12, "colors": 5, "goals": { 3: 44 },                              "veils": 4,
+		"resonance": 0.08, "echo": 1, "wardens": 3 },
+	{ "moves": 12, "colors": 5, "goals": { 0: 26, 1: 26, 4: 26 },                "veils": 0,
+		"resonance": 0.08, "echo": 2, "wardens": 4, "fuse": 3,
+		"note": "The Canvas is quickening. Fuses burn a move faster from here." },
+	{ "moves":  8, "colors": 5, "goals": { 1: 30, 3: 30 },                       "veils": 12,
+		"resonance": 0.08, "echo": 1, "wardens": 3, "fuse": 3 },
+	{ "moves":  7, "colors": 5, "goals": { 0: 24, 1: 24, 2: 24, 3: 24, 4: 24 },  "veils": 0,
+		"resonance": 0.10, "echo": 2, "wardens": 4, "fuse": 3 },
+	{ "moves":  7, "colors": 5, "goals": { 2: 34, 4: 34 },                       "veils": 8,
+		"resonance": 0.10, "echo": 2, "wardens": 5, "fuse": 3 },
+	{ "moves":  5, "colors": 5, "goals": { 0: 28, 1: 28, 2: 28 },                "veils": 6,
+		"resonance": 0.10, "echo": 2, "wardens": 4, "fuse": 3 },
+	{ "moves":  7, "colors": 5, "goals": { 3: 38, 4: 34 },                       "veils": 12,
+		"resonance": 0.10, "echo": 2, "wardens": 5, "fuse": 3 },
+	{ "moves":  7, "colors": 5, "goals": { 0: 26, 1: 26, 2: 26, 3: 26 },         "veils": 8,
+		"resonance": 0.10, "echo": 2, "wardens": 5, "fuse": 3 },
+	{ "moves":  7, "colors": 5, "goals": { 4: 44, 0: 40 },                       "veils": 14,
+		"resonance": 0.10, "echo": 2, "wardens": 6, "fuse": 3,
+		"note": "The last stop before the surface. Everything the Canvas has." },
 ]
 
 var current_level := 0

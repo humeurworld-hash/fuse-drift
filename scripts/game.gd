@@ -29,6 +29,7 @@ var veils_left := 0
 var res_chance := 0.0    # chance a spawned shard is resonant
 var echo_count := 0      # echo shards maintained on the board
 var wardens_left := 0    # Canvas drones still on the board
+var warden_fuse := 0     # moves a drone waits before it scans
 var thread_color := -1   # hue of the current thread (-1 = only resonants so far)
 var switch_armed := false  # last woven shard was resonant: next may be any hue
 
@@ -65,6 +66,7 @@ func _ready() -> void:
 	res_chance = level_def.get("resonance", 0.0)
 	echo_count = level_def.get("echo", 0)
 	wardens_left = level_def.get("wardens", 0)
+	warden_fuse = level_def.get("fuse", MourkDot.WARDEN_FUSE)
 
 	var vp := get_viewport_rect().size
 	board_origin = Vector2(
@@ -180,7 +182,7 @@ func _place_wardens() -> void:
 		d.veiled = false
 		d.resonant = false
 		d.echo_timer = 0
-		d.warden_timer = MourkDot.WARDEN_FUSE + i   # stagger their fuses
+		d.warden_timer = warden_fuse + i            # stagger their fuses
 		d.queue_redraw()
 
 
@@ -195,7 +197,7 @@ func _tick_wardens() -> void:
 			d.warden_timer -= 1
 			if d.warden_timer <= 0:
 				_warden_fire(Vector2i(c, r))
-				d.warden_timer = MourkDot.WARDEN_FUSE
+				d.warden_timer = warden_fuse
 			d.queue_redraw()
 
 
