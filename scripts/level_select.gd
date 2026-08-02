@@ -213,29 +213,44 @@ class StopButton extends Button:
 		queue_redraw()
 
 	func _draw() -> void:
+		# Stop states from the UI design: a filled gold disc with a tick once
+		# cleared, a pulsing white ring carrying the number for the stop you
+		# are on, and a padlock while it is still shut. Only the live stop
+		# shows a number, so the eye lands on it immediately.
 		var c := Vector2(R, R)
 		var gold: Color = G.GOLD
 		match state:
 			2:
-				draw_circle(c, R * 1.5, Color(gold.r, gold.g, gold.b, 0.10))
-				draw_circle(c, R * 0.86, Color(0.09, 0.11, 0.16))
-				draw_arc(c, R * 0.86, 0.0, TAU, 40, gold, 3.0)
+				draw_circle(c, R * 1.42, Color(gold.r, gold.g, gold.b, 0.10))
+				draw_circle(c, R * 0.86, gold)
+				# lit from the top-left, faked with a lighter cap
+				draw_circle(c - Vector2(R * 0.16, R * 0.20), R * 0.56,
+					Color("#f0dc85"))
+				draw_arc(c, R * 0.86, 0.0, TAU, 44, Color(1, 1, 1, 0.4), 2.0)
+				_tick(c, R * 0.42, TH.TEXT_ON_GOLD)
 			1:
 				var pulse := 0.5 + 0.5 * sin(_t * 2.6)
-				draw_circle(c, R * (1.5 + 0.22 * pulse),
-					Color(gold.r, gold.g, gold.b, 0.10 + 0.10 * pulse))
-				draw_circle(c, R * 0.86, Color(0.12, 0.14, 0.20))
-				draw_arc(c, R * 0.86, 0.0, TAU, 40,
-					Color(1, 1, 1, 0.65 + 0.35 * pulse), 3.5)
+				draw_circle(c, R * (1.42 + 0.20 * pulse),
+					Color(1, 1, 1, 0.06 + 0.08 * pulse))
+				draw_circle(c, R * 0.86, TH.SURFACE_RAISED)
+				draw_arc(c, R * 0.86, 0.0, TAU, 44,
+					Color(0.92, 0.93, 0.97, 0.7 + 0.3 * pulse), 3.0)
+				draw_string(TH.FONT_EXTRABOLD, Vector2(0, R + 8.0), str(idx + 1),
+					HORIZONTAL_ALIGNMENT_CENTER, R * 2.0, 22, TH.TEXT_PRIMARY)
 			_:
-				draw_circle(c, R * 0.80, Color(0.07, 0.08, 0.12))
-				draw_arc(c, R * 0.80, 0.0, TAU, 36, Color(0.22, 0.25, 0.33), 2.0)
+				draw_circle(c, R * 0.80, TH.SURFACE)
+				draw_arc(c, R * 0.80, 0.0, TAU, 40, Color(0.42, 0.46, 0.58, 0.5), 2.0)
+				_padlock(c, Color(1, 1, 1, 0.34))
 
-		var txt := str(idx + 1)
-		var col := Color(0.30, 0.34, 0.44)
-		if state == 2:
-			col = gold
-		elif state == 1:
-			col = Color(1, 1, 1)
-		draw_string(ThemeDB.fallback_font, Vector2(0, R + 11.0), txt,
-			HORIZONTAL_ALIGNMENT_CENTER, R * 2.0, 30, col)
+	func _tick(c: Vector2, s: float, col: Color) -> void:
+		draw_polyline(PackedVector2Array([
+			c + Vector2(-0.72, 0.06) * s,
+			c + Vector2(-0.20, 0.60) * s,
+			c + Vector2(0.76, -0.62) * s,
+		]), col, 4.0, true)
+
+	func _padlock(c: Vector2, col: Color) -> void:
+		var w := 13.0
+		var h := 10.0
+		draw_rect(Rect2(c.x - w * 0.5, c.y - 1.0, w, h), col)
+		draw_arc(c + Vector2(0, -1.0), 4.6, PI, TAU, 18, col, 2.2)

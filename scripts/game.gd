@@ -1062,14 +1062,18 @@ class GoalChip extends Control:
 		var art := 52.0
 		var rect := Rect2(center.x - art * 0.5, center.y - art * 0.5, art, art)
 		if is_warden:
-			var plate := PackedVector2Array()
-			for i in 6:
-				var a := TAU * float(i) / 6.0
-				plate.append(center + Vector2(cos(a), sin(a)) * 24.0)
-			draw_colored_polygon(plate, Color(0.10, 0.11, 0.15))
-			draw_polyline(plate + PackedVector2Array([plate[0]]),
-				Color(1.0, 0.32, 0.26), 2.5, true)
-			draw_circle(center, 8.0, Color(1.0, 0.55, 0.45, 0.9))
+			# Same machined plate as the board piece, so the chip is obviously
+			# a count of the drones rather than another hue.
+			var box := StyleBoxFlat.new()
+			box.bg_color = TH.WARDEN_BODY
+			box.border_color = Color(TH.WARDEN_EYE.r, TH.WARDEN_EYE.g,
+				TH.WARDEN_EYE.b, 0.45)
+			box.set_border_width_all(2)
+			box.set_corner_radius_all(12)
+			draw_style_box(box, Rect2(center.x - 24.0, center.y - 24.0, 48.0, 48.0))
+			draw_circle(center, 13.0, Color(TH.WARDEN_EYE.r, TH.WARDEN_EYE.g,
+				TH.WARDEN_EYE.b, 0.35))
+			draw_circle(center, 8.0, TH.WARDEN_EYE)
 		elif is_veil:
 			var tex: Texture2D = G.SHARD_TEXTURES[color_idx]
 			draw_texture_rect(tex, rect, false, Color(0.40, 0.42, 0.52, 0.85))

@@ -41,6 +41,7 @@ var targetable := false   # thread is long enough to strike this warden
 var _phase := 0.0
 var _jitter := 0.0
 var _focus := 1.0
+var _plate_box: StyleBoxFlat = null
 
 
 func _ready() -> void:
@@ -55,37 +56,41 @@ func _process(delta: float) -> void:
 
 
 func _draw_warden() -> void:
-	# Canvas tech: hard angular plating and a scanning eye, deliberately
-	# machined against the organic crystals it is hunting.
+	# Canvas tech, per the UI design: a machined plate with a soft glowing
+	# eye, deliberately manufactured against the organic crystals it hunts.
+	# The fuse count stays — the design dropped it, but the countdown is the
+	# whole decision the mechanic turns on.
 	var imminent := warden_timer <= 1
 	var pulse := 0.5 + 0.5 * sin(_phase * (5.0 if imminent else 2.0))
-	var hot := Color(1.0, 0.30, 0.26)
-	var body := Color(0.10, 0.11, 0.15)
-	var edge: Color = hot if imminent else Color(0.55, 0.30, 0.34)
+	var hot: Color = TH.WARDEN_EYE
 
-	var r := RADIUS * 1.12
-	var plate := PackedVector2Array()
-	for i in 6:
-		var a := TAU * float(i) / 6.0 + _phase * 0.25
-		plate.append(Vector2(cos(a), sin(a)) * r)
-	draw_colored_polygon(plate, body)
-	var ring := edge
-	ring.a = 0.55 + 0.45 * pulse
-	draw_polyline(plate + PackedVector2Array([plate[0]]), ring, 2.5, true)
+	var half := 44.0
+	var plate := Rect2(-half, -half, half * 2.0, half * 2.0)
+	if _plate_box == null:
+		_plate_box = StyleBoxFlat.new()
+		_plate_box.set_corner_radius_all(22)
+	_plate_box.bg_color = TH.WARDEN_BODY
+	_plate_box.border_color = Color(hot.r, hot.g, hot.b,
+		(0.65 if imminent else 0.30) + 0.25 * pulse)
+	_plate_box.set_border_width_all(2)
+	draw_style_box(_plate_box, plate)
 
-	# Targeting halo when the current thread is long enough to strike it.
+	# Targeting ring when the current thread is long enough to strike it.
 	if targetable:
-		var lock := Color(0.98, 0.86, 0.35, 0.5 + 0.5 * pulse)
-		draw_arc(Vector2.ZERO, r + 9.0, 0.0, TAU, 40, lock, 2.5)
+		draw_arc(Vector2.ZERO, half + 8.0, 0.0, TAU, 44,
+			Color(0.98, 0.86, 0.35, 0.5 + 0.5 * pulse), 2.5)
 
-	# Eye: widens and brightens as the fuse burns down.
-	var eye := hot
-	eye.a = 0.25 + 0.45 * pulse
-	draw_circle(Vector2.ZERO, 15.0 + 5.0 * pulse, eye)
-	draw_circle(Vector2.ZERO, 7.0, Color(1.0, 0.85, 0.80, 0.9))
+	# The eye: a bloom that swells and brightens as the fuse burns down.
+	var bloom := hot
+	bloom.a = (0.10 if not imminent else 0.18) + 0.12 * pulse
+	draw_circle(Vector2.ZERO, 26.0 + 6.0 * pulse, bloom)
+	bloom.a = 0.35 + 0.30 * pulse
+	draw_circle(Vector2.ZERO, 16.0, bloom)
+	draw_circle(Vector2.ZERO, 13.0, Color(hot.r, hot.g, hot.b, 0.85 + 0.15 * pulse))
+	draw_circle(Vector2(-3.5, -3.5), 4.0, Color(1, 0.92, 0.9, 0.55))
 
-	draw_string(ThemeDB.fallback_font, Vector2(-r, r + 20.0), str(warden_timer),
-		HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, 22,
+	draw_string(TH.FONT_EXTRABOLD, Vector2(-half, half + 22.0), str(warden_timer),
+		HORIZONTAL_ALIGNMENT_CENTER, half * 2.0, 22,
 		hot if imminent else Color(0.80, 0.72, 0.74))
 
 
