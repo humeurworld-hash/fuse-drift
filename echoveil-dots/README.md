@@ -25,7 +25,17 @@ with a one-line note, then stays.
 | 1 | **Weaving & loops** | The base game, in all 8 directions. |
 | 4 | **Resonant shards** | Prismatic crystals ringed in every hue. Weave *through* one and your thread may **change hue and keep going** — the move that turns "find the biggest blob" into route-planning. The thread is drawn per-segment, so you watch the colour change at the resonance. Chain 8+ shards and a new resonance condenses on the board. |
 | 5 | **Veils** | Grey, drained shards that can't be woven. Gather beside one to lift its veil. |
+| 13 | **Quickened fuses** | Warden fuses drop from 4 moves to 3 (`fuse` per level), and drones arrive in numbers — up to six on thread 20. |
 | 7 | **Echo shards** | Carry a countdown badge. Each move ticks it down; at zero the Loops rewind every neighbouring shard to a random hue. Gather one before it fires for a **bonus move**. |
+
+### The Descent (level select)
+
+Threads are stops on a mine line winding down through the cave, read
+bottom-to-top: thread 1 is the mouth near the surface, thread 20 the deepest
+cut. Cleared stretches of line burn gold, the next stop pulses, the rest sit
+dark. Rock walls, Mourk seams in the stone and depth markers are all drawn
+procedurally from a fixed seed, so it is the same cave every time. The view
+opens on the deepest stop you have reached.
 
 ### Canvas Wardens (from thread 3)
 
