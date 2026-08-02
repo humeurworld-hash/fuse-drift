@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 G="*res://scripts/global.gd"
+TH="*res://scripts/theme_tokens.gd"
 
 [display]
 

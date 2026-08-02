@@ -8,6 +8,7 @@ static func make_label(text: String, size: int, color: Color = Color(0.92, 0.93,
 	var lbl := Label.new()
 	lbl.text = text
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_override("font", TH.FONT_BOLD)
 	lbl.add_theme_font_size_override("font_size", size)
 	lbl.add_theme_color_override("font_color", color)
 	lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
@@ -19,16 +20,17 @@ static func make_label(text: String, size: int, color: Color = Color(0.92, 0.93,
 static func make_button(text: String, font_size := 34, accent := Color(0.90, 0.82, 0.40)) -> Button:
 	var btn := Button.new()
 	btn.text = text
+	btn.add_theme_font_override("font", TH.FONT_BOLD)
 	btn.add_theme_font_size_override("font_size", font_size)
 	btn.add_theme_color_override("font_color", accent)
 	btn.add_theme_color_override("font_hover_color", Color(1, 1, 1))
 	btn.add_theme_color_override("font_pressed_color", Color(1, 1, 1))
 
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.07, 0.10, 0.17)
-	sb.border_color = accent * Color(1, 1, 1, 0.55)
-	sb.set_border_width_all(2)
-	sb.set_corner_radius_all(16)
+	sb.bg_color = TH.SURFACE_RAISED
+	sb.border_color = TH.HAIRLINE
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(14)
 	sb.content_margin_left = 34.0
 	sb.content_margin_right = 34.0
 	sb.content_margin_top = 16.0

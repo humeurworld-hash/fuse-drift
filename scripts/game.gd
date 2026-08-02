@@ -619,15 +619,15 @@ func _build_hud(vp: Vector2) -> void:
 	hud.add_child(chips)
 
 	for k in goals:
-		var chip := GoalChip.new(k, false)
+		var chip := GoalChip.new(k, false, false, int(goals[k]))
 		chips.add_child(chip)
 		goal_chips[k] = chip
 	if level_def.veils > 0:
-		var vchip := GoalChip.new(0, true)
+		var vchip := GoalChip.new(0, true, false, level_def.veils)
 		chips.add_child(vchip)
 		goal_chips["veils"] = vchip
 	if level_def.get("wardens", 0) > 0:
-		var wchip := GoalChip.new(0, false, true)
+		var wchip := GoalChip.new(0, false, true, level_def.get("wardens", 0))
 		chips.add_child(wchip)
 		goal_chips["wardens"] = wchip
 
@@ -1030,15 +1030,21 @@ class Burst extends Node2D:
 
 
 class GoalChip extends Control:
+	# Card treatment and "gathered / target" progress, per the UI design.
+	# Showing progress rather than a bare remaining count means the number
+	# always reads in the same direction as the goal.
 	var color_idx := 0
 	var is_veil := false
 	var is_warden := false
 	var remaining := 0
+	var target := 0
 
-	func _init(p_color_idx: int, p_veil: bool, p_warden := false) -> void:
+	func _init(p_color_idx: int, p_veil: bool, p_warden := false, p_target := 0) -> void:
 		color_idx = p_color_idx
 		is_veil = p_veil
 		is_warden = p_warden
+		target = maxi(p_target, 0)
+		remaining = target
 		custom_minimum_size = Vector2(76, 96)
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
@@ -1047,8 +1053,13 @@ class GoalChip extends Control:
 		queue_redraw()
 
 	func _draw() -> void:
-		var center := Vector2(size.x * 0.5, 32.0)
-		var art := 58.0
+		# Card behind the chip.
+		var card := Rect2(0, 0, size.x, size.y)
+		draw_rect(card, TH.SURFACE)
+		_draw_round_border(card, 12.0)
+
+		var center := Vector2(size.x * 0.5, 34.0)
+		var art := 52.0
 		var rect := Rect2(center.x - art * 0.5, center.y - art * 0.5, art, art)
 		if is_warden:
 			var plate := PackedVector2Array()
@@ -1069,7 +1080,23 @@ class GoalChip extends Control:
 			draw_circle(center, 30.0, glow)
 			draw_texture_rect(G.SHARD_TEXTURES[color_idx], rect, false)
 		var done := remaining <= 0
-		var txt := "OK" if done else str(remaining)
-		var txt_col := Color(0.36, 0.92, 0.48) if done else Color(0.92, 0.93, 0.97)
-		draw_string(ThemeDB.fallback_font, Vector2(0, 88), txt,
-			HORIZONTAL_ALIGNMENT_CENTER, size.x, 26, txt_col)
+		var got: int = target - remaining
+		var txt := "%d/%d" % [got, target]
+		var txt_col: Color = Color("#5CEB7A") if done else TH.TEXT_PRIMARY
+		draw_string(TH.FONT_BOLD, Vector2(0, 82), txt,
+			HORIZONTAL_ALIGNMENT_CENTER, size.x, 22, txt_col)
+
+	func _draw_round_border(r: Rect2, rad: float) -> void:
+		var pts := PackedVector2Array()
+		var corners := [
+			[Vector2(r.position.x + rad, r.position.y + rad), PI, 1.5 * PI],
+			[Vector2(r.end.x - rad, r.position.y + rad), 1.5 * PI, TAU],
+			[Vector2(r.end.x - rad, r.end.y - rad), 0.0, 0.5 * PI],
+			[Vector2(r.position.x + rad, r.end.y - rad), 0.5 * PI, PI],
+		]
+		for c in corners:
+			for i in 7:
+				var a: float = lerpf(c[1], c[2], float(i) / 6.0)
+				pts.append(c[0] + Vector2(cos(a), sin(a)) * rad)
+		pts.append(pts[0])
+		draw_polyline(pts, TH.HAIRLINE, 1.5, true)

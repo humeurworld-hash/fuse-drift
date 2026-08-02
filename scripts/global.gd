@@ -104,6 +104,8 @@ var unlocked := 1
 
 func _ready() -> void:
 	_load()
+	# Manrope everywhere; individual screens override sizes/weights.
+	TH.install(get_tree())
 
 
 func level_count() -> int:
