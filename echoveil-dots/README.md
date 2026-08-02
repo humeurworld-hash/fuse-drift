@@ -1,0 +1,137 @@
+# EchoVeil: Mourk Weave
+
+A Two Dots-style connect-the-dots puzzle set in the world of EchoVeil, where
+emotion crystallises into Mourk. Companion game to *Fuse: Mourk Run* (the main
+project in this repository) — this is a fully separate, self-contained Godot
+project.
+
+## How to play
+
+- **Weave a thread**: drag between neighbouring shards of the same hue —
+  **in any of the 8 directions**, diagonals included.
+- **Release** with 2+ shards woven to gather them (costs one move).
+- **Close a loop** (weave back onto a shard already in your thread) and release
+  to gather **every** shard of that hue on the board. A loop needs at least 4
+  distinct shards, so a diagonal triangle won't do it.
+- Meet every hue goal (and lift every veil) before your moves run out.
+
+## Mechanics, thread by thread
+
+Rather than dropping everything at once, each idea arrives on its own thread
+with a one-line note, then stays.
+
+| From | Mechanic | What it does |
+|---|---|---|
+| 1 | **Weaving & loops** | The base game, in all 8 directions. |
+| 4 | **Resonant shards** | Prismatic crystals ringed in every hue. Weave *through* one and your thread may **change hue and keep going** — the move that turns "find the biggest blob" into route-planning. The thread is drawn per-segment, so you watch the colour change at the resonance. Chain 8+ shards and a new resonance condenses on the board. |
+| 5 | **Veils** | Grey, drained shards that can't be woven. Gather beside one to lift its veil. |
+| 13 | **Quickened fuses** | Warden fuses drop from 4 moves to 3 (`fuse` per level), and drones arrive in numbers — up to six on thread 20. |
+| 7 | **Echo shards** | Carry a countdown badge. Each move ticks it down; at zero the Loops rewind every neighbouring shard to a random hue. Gather one before it fires for a **bonus move**. |
+
+### The Descent (level select)
+
+Threads are stops on a mine line winding down through the cave, read
+bottom-to-top: thread 1 is the mouth near the surface, thread 20 the deepest
+cut. Cleared stretches of line burn gold, the next stop pulses, the rest sit
+dark. Rock walls, Mourk seams in the stone and depth markers are all drawn
+procedurally from a fixed seed, so it is the same cave every time. The view
+opens on the deepest stop you have reached.
+
+### Canvas Wardens (from thread 3)
+
+The Canvas finally hunts you back. A warden is a machined hexagon sitting in a
+cell with a **fuse count** on it. Every move burns one; at zero it scans and
+shrouds up to three shards around it, then re-arms.
+
+You cannot gather a warden and you cannot start a thread on one. You **strike**
+it — by ending a thread on it, with at least two shards of real Mourk already
+woven. It then terminates that thread; nothing follows it. Facet shockwaves and
+diamond collapses also destroy them, so shapes double as weapons, but a loop
+deliberately does *not* sweep them up.
+
+**Every warden must fall to clear the thread**, alongside the hue goals. That's
+the decision the game was missing: take the fat chain, or spend this move
+putting down the drone that fires next turn.
+
+## Shapes — the payoff for weaving, not just matching
+
+Diagonals make *shape* possible, so the thread's geometry is read when you
+release and rewarded on top of the normal gather. They stack: a knotted
+diamond built from facets pays all three.
+
+| Shape | How you make it | Payoff |
+|---|---|---|
+| **Facet** | 3+ shards in a straight diagonal run | A shockwave down the diagonal — the shards flanking either side of the run are gathered too |
+| **Diamond** | Close a loop as a 4-shard rhombus (a diagonal square around a centre shard) | Collapses whatever it encircles: the enclosed shard goes too, **whatever hue it is** |
+| **Weave** | Cross your own thread — two diagonal segments through the same cell square | A genuine knot. Gives a **move back** |
+
+A 2×2 orthogonal square is a loop but deliberately *not* a diamond: its centre
+falls between cells rather than on one, so square and diamond stay distinct
+shapes with distinct rewards.
+
+## Difficulty is tuned against measured play
+
+The threads aren't hand-guessed. A solver plays every level repeatedly and
+reports how much of the move budget it leaves unused. The first pass exposed
+that levels were being cleared with **80% of the moves untouched and zero
+losses in 30 runs** — every mechanic added had multiplied the player's power
+while the targets underneath stayed put.
+
+That pass also caught a real bug: the facet shockwave was flanking *every*
+diagonal step in a path rather than the single longest straight run, so one
+long zigzag could clear almost all 36 cells. Now the budgets sit around a
+third unused with the solver losing a few runs outright — and the solver
+plays far better than a person, so a human should feel it.
+
+## Why it doesn't look like a match-3
+
+The skeleton of Two Dots and Bejeweled is nearly identical; presentation is
+what separates them. Deliberate choices here:
+
+- **No sockets.** Shards hang in the veil — they drift, sway, and breathe.
+  A circle behind each piece, even a faint one, reads instantly as a slot.
+  For the same reason the hue aura is stacked soft rings drawn *behind* the
+  crystal, never over it.
+- **Each hue has its own silhouette.** The art is one crystal cluster, so
+  every emotion gets a signature tilt, scale and handedness (`HUE_FORM`).
+  Five recolours of one shape is the jewel-game tell.
+- **The thread is the hero.** While weaving, shards that can't join fall back
+  into the veil, so the eye follows the line rather than scanning a wall of
+  gems — and the thread is drawn per-segment so a hue switch is visible.
+
+## The five hues
+
+| Hue | Emotion | Colour |
+|---|---|---|
+| Ember | anger | red |
+| Sorrow | sadness | blue |
+| Verdant | calm | green |
+| Radiance | joy | gold |
+| Umbral | fear | purple |
+
+## Running it
+
+Open this folder (`echoveil-dots/`) as a project in Godot 4.6+ and press Play.
+Portrait 720×1280, mobile renderer (GL Compatibility) — same setup as the main
+project. The game pieces use the Mourk shard crystal art shared with
+*Fuse: Mourk Run* (`assets/shards/`); everything else is drawn in code.
+
+## Structure
+
+- `scenes/` — thin `.tscn` shells (Menu, LevelSelect, Game); all UI is built in code
+- `scripts/global.gd` — autoload `G`: palette, level definitions, save data
+- `scripts/game.gd` — board, weaving input, loop detection, gravity/refill, HUD
+- `scripts/dot.gd` — a single Mourk mote (procedural glow, veil state)
+- `scripts/motes.gd` — ambient drifting-mote background layer
+- `scripts/ui_helpers.gd` — shared styled labels/buttons/panels
+
+Progress (unlocked threads) is saved to `user://mourk_weave.cfg`.
+
+## Smoke test
+
+A headless test drives the board logic (fill, veils, weave, loop clear,
+gravity/refill) and exits non-zero on failure:
+
+```sh
+godot --headless --path . res://TestSmoke.tscn
+```
